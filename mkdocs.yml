@@ -23,6 +23,9 @@ nav:
       - Devcontainer with VSCode: features/devcontainer.md
   - Tutorial: tutorial.md
   - Prompt Arguments: prompt_arguments.md
+  - Azure DevOps:
+      - CI/CD Setup: azure_devops_setup.md
+      - Documentation Hosting: azure_docs_hosting_alternatives.md
 plugins:
   - search
 extra_css:

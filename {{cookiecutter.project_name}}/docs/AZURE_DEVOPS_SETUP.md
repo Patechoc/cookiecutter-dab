@@ -76,7 +76,7 @@ If you plan to **publish to PyPI**:
 
 {% if cookiecutter.mkdocs == "y" %}If you plan to **deploy documentation**:
 
-Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) for options (Azure Static Web Apps, ReadTheDocs, Netlify, and others) and their setup instructions.
+Azure DevOps has no built-in equivalent to GitHub Pages. See the [troubleshooting section below](#documentation-not-deployed-after-release) for deployment options (Azure Static Web Apps, ReadTheDocs, Netlify, and others).
 {% endif %}
 
 ## How the Pipelines Work
@@ -122,7 +122,7 @@ git push origin v1.0.0
 3. Builds your package
 4. Publishes to PyPI (if enabled in template)
 
-{% if cookiecutter.mkdocs == "y" %}> **Note on documentation deployment**: Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) for options such as Azure Static Web Apps, ReadTheDocs, and Netlify.
+{% if cookiecutter.mkdocs == "y" %}> **Note on documentation deployment**: Azure DevOps has no built-in equivalent to GitHub Pages. See the [troubleshooting section below](#documentation-not-deployed-after-release) for deployment options such as Azure Static Web Apps, ReadTheDocs, and Netlify.
 {% endif %}
 
 ## Viewing Pipeline Results
@@ -225,7 +225,7 @@ trigger:
 
 ### Documentation not deployed after release
 
-Documentation deployment is not wired up by default — Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) to choose and configure a hosting option.
+Documentation deployment is not wired up by default — Azure DevOps has no built-in equivalent to GitHub Pages. Options include Azure Static Web Apps, ReadTheDocs, and Netlify; consult your team's platform documentation for setup instructions.
 
 ### Pipeline not triggering on push/PR
 
@@ -276,6 +276,6 @@ Once pipelines are working:
 ## Getting Help
 
 - Check pipeline **Logs** for error details
-- See the [main guide](../azure_devops_setup.md) for more detailed explanations
+- See the [main guide](AZURE_DEVOPS_SETUP.md) for more detailed explanations
 - Review [Azure Pipelines documentation](https://docs.microsoft.com/azure/devops/pipelines)
 - Ask your team lead or senior developer

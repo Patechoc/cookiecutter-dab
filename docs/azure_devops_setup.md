@@ -122,6 +122,7 @@ Variables are referenced in YAML with `$(variableName)` syntax. For example:
 ### Main Pipeline (`azure-pipelines-main.yml`)
 
 This pipeline runs automatically on:
+
 - **Push to main branch**
 - **Pull requests** targeting main
 
@@ -165,6 +166,7 @@ This pipeline runs when you create a release (Git tag).
 ### Automatic Triggers
 
 #### Main Pipeline
+
 ```bash
 # Trigger automatically on push to main
 git push origin main
@@ -175,6 +177,7 @@ git push origin feature-branch
 ```
 
 #### Release Pipeline
+
 ```bash
 # Create a release tag to trigger the release pipeline
 git tag v1.0.0
@@ -218,6 +221,7 @@ When a pipeline fails:
 4. Review the logs to identify the issue
 
 Example common failures:
+
 - **"Lock file out of date"**: Run `uv lock` locally and commit
 - **"Test failed"**: Check test output in logs
 - **"Type check failed"**: Run `mypy` locally to find issues
@@ -228,6 +232,7 @@ Example common failures:
 ### Issue: "Permission denied" when publishing to PyPI
 
 **Solution:**
+
 1. Verify your PyPI token is correct and not expired
 2. Check that the token secret in Azure DevOps matches exactly what you copied
 3. Ensure you're using the correct variable name: `$(pypiToken)`
@@ -239,6 +244,7 @@ Example common failures:
 ### Issue: "Tests fail on my machine but pass in pipeline" (or vice versa)
 
 **Solution:**
+
 1. Check Python version: `python --version` (should match pipeline version)
 2. Reinstall dependencies: `uv sync --frozen`
 3. Check for platform-specific issues (Windows vs Linux)
@@ -258,6 +264,7 @@ Example common failures:
 4. ✓ For releases: you created a Git tag starting with `v` (e.g., `v1.0.0`)
 
 **Solution:**
+
 - Manually trigger in Azure DevOps ("Run pipeline" button)
 - Check "All" pipelines, not just "Recent"
 
@@ -266,7 +273,7 @@ Example common failures:
 ### 1. Secrets Storage
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | Settings → Secrets and variables → Actions | Pipelines → (Select pipeline) → Variables |
 | `${{ secrets.TOKEN }}` | `$(tokenVariableName)` |
 | Auto-detected from environment | Must explicitly add to pipeline variables |
@@ -274,7 +281,7 @@ Example common failures:
 ### 2. Artifact Management
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `actions/upload-artifact@v4` | `PublishBuildArtifacts@1` task |
 | `actions/download-artifact@v4` | `DownloadBuildArtifacts@1` task |
 | Limited retention by default | 30 days retention by default |
@@ -282,14 +289,14 @@ Example common failures:
 ### 3. Job Matrix
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `matrix: python-version: [...]` | `strategy: matrix: { pythonVersion: [...] }` |
 | `${{ matrix.python-version }}` | `$(pythonVersion)` |
 
 ### 4. Cache
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `actions/cache@v4` | `Cache@2` task |
 | Automatic cleanup after 7 days | Automatic cleanup after 7 days |
 | Simple key syntax | More explicit key/path configuration |
@@ -297,7 +304,7 @@ Example common failures:
 ### 5. Triggers
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `on: push:` or `on: pull_request:` | `trigger:` and `pr:` |
 | Tag triggers in workflow | `trigger: tags:` for releases |
 | No native tag filtering | Built-in tag include/exclude patterns |
@@ -305,19 +312,19 @@ Example common failures:
 ### 6. Cron Jobs
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `schedule: - cron: '0 0 * * 0'` | `schedules: - cron: "0 0 * * 0"` with `always: false` |
 
 ### 7. Conditional Execution
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `if: ${{ condition }}` | `condition: eq(...)`, `ne()`, etc. or `condition: succeeded()` |
 
 ### 8. Using External Actions
 
 | GitHub Actions | Azure Pipelines |
-|---|---|
+| --- | --- |
 | `uses: owner/repo@v1` | `task: TaskName@version` (official) or `job` templates |
 | Community actions very common | Fewer but well-maintained official tasks |
 
@@ -325,9 +332,9 @@ Example common failures:
 
 ## Additional Resources
 
-- **Azure Pipelines Documentation**: https://docs.microsoft.com/azure/devops/pipelines
-- **YAML Schema Reference**: https://docs.microsoft.com/azure/devops/pipelines/yaml-schema
-- **Azure DevOps Marketplace**: https://marketplace.visualstudio.com/azuredevops
+- **Azure Pipelines Documentation**: [https://docs.microsoft.com/azure/devops/pipelines](https://docs.microsoft.com/azure/devops/pipelines)
+- **YAML Schema Reference**: [https://docs.microsoft.com/azure/devops/pipelines/yaml-schema](https://docs.microsoft.com/azure/devops/pipelines/yaml-schema)
+- **Azure DevOps Marketplace**: [https://marketplace.visualstudio.com/azuredevops](https://marketplace.visualstudio.com/azuredevops)
 
 ## Questions?
 
