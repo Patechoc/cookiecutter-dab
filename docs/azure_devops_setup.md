@@ -104,7 +104,7 @@ Some pipelines need sensitive information (tokens, credentials). Here's how to c
 
 #### Documentation Hosting Token (optional)
 
-Documentation deployment is not included in the release pipeline by default. Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) for setup instructions for Azure Static Web Apps, ReadTheDocs, Netlify, and other options — each with their own token/secret requirements.
+Documentation deployment is not included in the release pipeline by default. Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](./azure_docs_hosting_alternatives.md) for setup instructions for Azure Static Web Apps, ReadTheDocs, Netlify, and other options — each with their own token/secret requirements.
 
 ### Using Variables in Pipelines
 
@@ -158,7 +158,7 @@ This pipeline runs when you create a release (Git tag).
 3. **Publish** (if publishing to PyPI)
    - Builds the Python package and publishes to PyPI
 
-> **Note on documentation deployment**: Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) for options including Azure Static Web Apps, ReadTheDocs, and Netlify.
+> **Note on documentation deployment**: Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](./azure_docs_hosting_alternatives.md) for options including Azure Static Web Apps, ReadTheDocs, and Netlify.
 
 ## Triggering Pipelines
 
@@ -234,7 +234,7 @@ Example common failures:
 
 ### Issue: Documentation not deployed after release
 
-**Solution:** Documentation deployment is not wired up by default — Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](azure_docs_hosting_alternatives.md) to choose and configure a hosting option.
+**Solution:** Documentation deployment is not wired up by default — Azure DevOps has no built-in equivalent to GitHub Pages. See [Documentation Hosting Alternatives](./azure_docs_hosting_alternatives.md) to choose and configure a hosting option.
 
 ### Issue: "Tests fail on my machine but pass in pipeline" (or vice versa)
 
