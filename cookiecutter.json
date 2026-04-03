@@ -10,8 +10,8 @@
     "src"
   ],
   "cicd_github_actions": [
-    "y",
-    "n"
+    "n",
+    "y"
   ],
   "cicd_azure_pipelines": [
     "y",

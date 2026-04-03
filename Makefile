@@ -1,17 +1,28 @@
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help: ## Show this help message
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
+	/^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 } \
+	/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' \
+	$(MAKEFILE_LIST)
+
+##@ Template
+
 .PHONY: bake
-bake: ## bake without inputs and overwrite if exists.
+bake: ## Bake without inputs and overwrite if exists
 	@uv run cookiecutter --no-input . --overwrite-if-exists
 
 .PHONY: bake-src
-bake-src: ## bake without inputs and overwrite if exists.
+bake-src: ## Bake with src layout, no inputs, overwrite if exists
 	@uv run cookiecutter --no-input . --overwrite-if-exists layout="src"
 
 .PHONY: bake-with-inputs
-bake-with-inputs: ## bake with inputs and overwrite if exists.
+bake-with-inputs: ## Bake interactively and overwrite if exists
 	@uv run cookiecutter . --overwrite-if-exists
 
 .PHONY: bake-and-test-deploy
-bake-and-test-deploy: ## For quick publishing to cookiecutter-uv-example to test GH Actions
+bake-and-test-deploy: ## Bake and push to cookiecutter-uv-example to test GH Actions
 	@rm -rf cookiecutter-uv-example || true
 	@uv run cookiecutter --no-input . --overwrite-if-exists \
 		author="Florian Maas" \
@@ -31,14 +42,17 @@ bake-and-test-deploy: ## For quick publishing to cookiecutter-uv-example to test
 		git remote add origin git@github.com:osprey-oss/cookiecutter-uv-example.git && \
 		git push -f origin main
 
+##@ Environment
 
 .PHONY: install
-install: ## Install the virtual environment
+install: ## Create virtual environment and install dependencies
 	@echo "🚀 Creating virtual environment"
 	@uv sync
 
+##@ CI / Code Quality
+
 .PHONY: check
-check: ## Run code quality tools.
+check: ## Run lock file check, linting, type checking, and deptry
 	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
 	@uv lock --locked
 	@echo "🚀 Linting code: Running pre-commit"
@@ -49,9 +63,11 @@ check: ## Run code quality tools.
 	@uv run deptry .
 
 .PHONY: test
-test: ## Test the code with pytest.
+test: ## Run tests with pytest and coverage
 	@echo "🚀 Testing code: Running pytest"
 	@uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml tests
+
+##@ Python Packaging
 
 .PHONY: build
 build: clean-build ## Build wheel file
@@ -59,31 +75,26 @@ build: clean-build ## Build wheel file
 	@uvx --from build pyproject-build --installer uv
 
 .PHONY: clean-build
-clean-build: ## Clean build artifacts
+clean-build: ## Remove build artifacts
 	@echo "🚀 Removing build artifacts"
 	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
 
 .PHONY: publish
-publish: ## Publish a release to PyPI.
+publish: ## Publish a release to PyPI
 	@echo "🚀 Publishing: Dry run."
 	@uvx --from build pyproject-build --installer uv
 	@echo "🚀 Publishing."
 	@uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
 .PHONY: build-and-publish
-build-and-publish: build publish ## Build and publish.
+build-and-publish: build publish ## Build and publish to PyPI
+
+##@ Documentation
 
 .PHONY: docs-test
-docs-test: ## Test if documentation can be built without warnings or errors
+docs-test: ## Build documentation (strict — fail on warnings)
 	@uv run mkdocs build -s
 
 .PHONY: docs
-docs: ## Build and serve the documentation
+docs: ## Build and serve documentation locally
 	@uv run mkdocs serve
-
-.PHONY: help
-help:
-	@uv run python -c "import re; \
-	[[print(f'\033[36m{m[0]:<20}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
-
-.DEFAULT_GOAL := help
