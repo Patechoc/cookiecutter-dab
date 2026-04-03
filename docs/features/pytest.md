@@ -8,5 +8,5 @@ directory upon creation of the project, which can be run with
 make test
 ```
 
-If `include_github_actions` is set to `"y"`, the tests are automatically
+If `cicd_github_actions` is set to `"y"`, the tests are automatically
 run for every merge request, every merge to main, and every release.

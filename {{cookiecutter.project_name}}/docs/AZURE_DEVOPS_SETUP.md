@@ -167,7 +167,7 @@ If you previously used GitHub Actions, here are the key differences. **Note:** T
 **GitHub Actions:**
 ```yaml
 env:
-  TOKEN: ${{ secrets.MY_TOKEN }}
+  TOKEN: {% raw %}${{ secrets.MY_TOKEN }}{% endraw %}
 ```
 
 **Azure Pipelines:**

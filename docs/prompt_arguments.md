@@ -42,11 +42,15 @@ A short description of your project.
 - `"flat"`: Places the Python module in the root directory.
 - `"src"`: Organizes the project by placing the Python module inside a `src` directory.
 
-**include_github_actions**
+**cicd_github_actions**
 
-`"y"` or `"n"`. Adds a `.github` directory with various actions and
-workflows to setup the environment and run code formatting checks
-and unittests.
+`"y"` or `"n"`. Adds a `.github` directory with GitHub Actions workflows for
+CI/CD: environment setup, code formatting checks, and unit tests.
+
+**cicd_azure_pipelines**
+
+`"y"` or `"n"`. Adds a `.azure` directory with Azure Pipelines YAML files for
+CI/CD: code quality checks, tests across Python 3.10–3.14, and optional PyPI publishing.
 
 **publish_to_pypi**
 

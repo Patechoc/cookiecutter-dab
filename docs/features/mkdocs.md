@@ -3,7 +3,7 @@
 If `mkdocs` is set to `"y"`, documentation of your project is
 automatically added using
 [MkDocs](https://www.mkdocs.org/). Next to that, if
-`"include_github_actions"` is set to `"y"`, the documentation is
+`"cicd_github_actions"` is set to `"y"`, the documentation is
 automatically deployed to your `gh-pages` branch, and made available at
 `https://<github_handle>.github.io/<project_name>/`.
 

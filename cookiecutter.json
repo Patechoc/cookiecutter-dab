@@ -9,7 +9,11 @@
     "flat",
     "src"
   ],
-  "include_github_actions": [
+  "cicd_github_actions": [
+    "y",
+    "n"
+  ],
+  "cicd_azure_pipelines": [
     "y",
     "n"
   ],

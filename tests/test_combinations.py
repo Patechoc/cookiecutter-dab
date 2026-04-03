@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 
 MINIMAL = {
-    "include_github_actions": "n",
+    "cicd_github_actions": "n",
+    "cicd_azure_pipelines": "n",
     "publish_to_pypi": "n",
     "deptry": "n",
     "mkdocs": "n",
@@ -18,17 +19,19 @@ COMBINATIONS = [
     pytest.param({"layout": "src"}, id="src-layout-defaults"),
     pytest.param({**MINIMAL, "layout": "src"}, id="src-layout-minimal"),
     pytest.param({"publish_to_pypi": "n", "mkdocs": "n"}, id="no-publish-no-mkdocs"),
-    pytest.param({"include_github_actions": "n"}, id="no-github-actions"),
+    pytest.param({"cicd_github_actions": "n"}, id="no-github-actions"),
+    pytest.param({"cicd_azure_pipelines": "n"}, id="no-azure-pipelines"),
     pytest.param({"type_checker": "ty"}, id="ty-type-checker"),
     pytest.param({"mkdocs": "y", "codecov": "n"}, id="mkdocs-no-codecov"),
-    pytest.param({"codecov": "n", "include_github_actions": "n"}, id="no-codecov-no-actions"),
+    pytest.param({"codecov": "n", "cicd_github_actions": "n"}, id="no-codecov-no-actions"),
     pytest.param({"layout": "src", "type_checker": "ty", "publish_to_pypi": "n"}, id="src-ty-no-publish"),
 ]
 
 # Defaults from cookiecutter.json (first item in each list)
 DEFAULTS = {
     "layout": "flat",
-    "include_github_actions": "y",
+    "cicd_github_actions": "y",
+    "cicd_azure_pipelines": "y",
     "publish_to_pypi": "y",
     "deptry": "y",
     "mkdocs": "y",
@@ -90,10 +93,15 @@ class TestStructure:
         else:
             assert not project.has_dir(".devcontainer")
 
-        if effective["include_github_actions"] == "y":
+        if effective["cicd_github_actions"] == "y":
             assert project.has_dir(".github")
         else:
             assert not project.has_dir(".github")
+
+        if effective["cicd_azure_pipelines"] == "y":
+            assert project.has_dir(".azure")
+        else:
+            assert not project.has_dir(".azure")
 
     def test_layout(self, bake, options):
         effective = resolve_options(options)
@@ -108,7 +116,7 @@ class TestStructure:
     def test_release_workflow(self, bake, options):
         effective = resolve_options(options)
         project = bake(**options)
-        if effective["include_github_actions"] != "y":
+        if effective["cicd_github_actions"] != "y":
             return  # no .github at all
         has_release = effective["publish_to_pypi"] == "y" or effective["mkdocs"] == "y"
         workflow = ".github/workflows/on-release-main.yml"
@@ -120,7 +128,7 @@ class TestStructure:
     def test_yaml_validity(self, bake, options):
         effective = resolve_options(options)
         project = bake(**options)
-        if effective["include_github_actions"] == "y":
+        if effective["cicd_github_actions"] == "y":
             assert project.is_valid_yaml(".github/workflows/main.yml")
 
     def test_pyproject_type_checker(self, bake, options):
@@ -152,7 +160,7 @@ class TestStructure:
     def test_codecov_workflow(self, bake, options):
         effective = resolve_options(options)
         project = bake(**options)
-        if effective["include_github_actions"] == "y":
+        if effective["cicd_github_actions"] == "y":
             if effective["codecov"] == "y":
                 assert project.has_file(".github/workflows/validate-codecov-config.yml")
                 assert project.has_file("codecov.yaml")
