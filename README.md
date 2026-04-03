@@ -13,7 +13,7 @@ This is a modern Cookiecutter template that can be used to initiate a Python pro
 
 - [uv](https://docs.astral.sh/uv/) for dependency management
 - Supports both [src and flat layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/).
-- CI/CD with [GitHub Actions](https://github.com/features/actions)
+- CI/CD with [GitHub Actions](https://github.com/features/actions) of [Azure DevOps](https://azure.microsoft.com/en-us/products/devops/pipelines)
 - Pre-commit hooks with [pre-commit](https://pre-commit.com/)
 - Code quality with [ruff](https://github.com/charliermarsh/ruff), [mypy](https://mypy.readthedocs.io/en/stable/)/[ty](https://docs.astral.sh/ty/) and [deptry](https://github.com/fpgmaas/deptry/).
 - Publishing to [PyPI](https://pypi.org) by creating a new release on GitHub
@@ -37,21 +37,21 @@ On your local machine, navigate to the directory in which you want to
 create a project directory, and run the following command:
 
 ```bash
-uvx cookiecutter https://github.com/osprey-oss/cookiecutter-uv.git
+uvx cookiecutter https://github.com/patechoc/cookiecutter-uv.git
 ```
 
 or if you don't have `uv` installed yet:
 
 ```bash
 pip install cookiecutter
-cookiecutter https://github.com/osprey-oss/cookiecutter-uv.git
+cookiecutter https://github.com/patechoc/cookiecutter-uv.git
 ```
 
 Follow the prompts to configure your project. Once completed, a new directory containing your project will be created. Then navigate into your newly created project directory and follow the instructions in the `README.md` to complete the setup of your project.
 
 ## Acknowledgements
 
-This project is partially based on [Audrey
+This project is clone from [Florian Maas\'s cookiecutter-uv](https://github.com/osprey-oss/cookiecutter-uv.git) project, which is itself partially based on [Audrey
 Feldroy\'s](https://github.com/audreyfeldroy)\'s great
 [cookiecutter-pypackage](https://github.com/audreyfeldroy/cookiecutter-pypackage)
 repository.
