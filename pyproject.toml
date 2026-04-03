@@ -2,7 +2,7 @@
 name = "cookiecutter-uv"
 version = "0.0.1"
 description = "A python cookiecutter application to create a new python project that uses uv to manage its dependencies."
-authors = [{ name = "Florian Maas", email = "fpgmaas@gmail.com" }]
+authors = [{ name = "{{cookiecutter.author}}", email = "{{cookiecutter.email}}" }]
 readme = "README.md"
 keywords = ['cookiecutter', 'template', 'uv']
 requires-python = ">=3.10,<4.0"

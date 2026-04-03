@@ -1,11 +1,24 @@
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help: ## Show this help message
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
+	/^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2 } \
+	/^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' \
+	$(MAKEFILE_LIST)
+
+##@ Environment
+
 .PHONY: install
-install: ## Install the virtual environment and install the pre-commit hooks
+install: ## Create virtual environment and install pre-commit hooks
 	@echo "🚀 Creating virtual environment using uv"
 	@uv sync
 	@uv run pre-commit install
 
+##@ CI / Code Quality
+
 .PHONY: check
-check: ## Run code quality tools.
+check: ## Run lock file check, linting, type checking{% if cookiecutter.deptry == 'y' %}, and deptry{% endif %}
 	@echo "🚀 Checking lock file consistency with 'pyproject.toml'"
 	@uv lock --locked
 	@echo "🚀 Linting code: Running pre-commit"
@@ -18,7 +31,7 @@ check: ## Run code quality tools.
 {%- endif %}
 
 .PHONY: test
-test: ## Test the code with pytest
+test: ## Run tests with pytest{% if cookiecutter.codecov == "y" %} and coverage{% endif %}
 	@echo "🚀 Testing code: Running pytest"
 {%- if cookiecutter.codecov == "y"%}
 	@uv run python -m pytest --cov --cov-config=pyproject.toml --cov-report=xml
@@ -26,42 +39,36 @@ test: ## Test the code with pytest
 	@uv run python -m pytest --doctest-modules
 {%- endif%}
 
+##@ Python Packaging
+
 .PHONY: build
 build: clean-build ## Build wheel file
 	@echo "🚀 Creating wheel file"
 	@uvx --from build pyproject-build --installer uv
 
 .PHONY: clean-build
-clean-build: ## Clean build artifacts
+clean-build: ## Remove build artifacts
 	@echo "🚀 Removing build artifacts"
 	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
-
 {%- if cookiecutter.publish_to_pypi == "y"%}
 
 .PHONY: publish
-publish: ## Publish a release to PyPI.
+publish: ## Publish a release to PyPI
 	@echo "🚀 Publishing."
 	@uvx twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
 .PHONY: build-and-publish
-build-and-publish: build publish ## Build and publish.
+build-and-publish: build publish ## Build and publish to PyPI
 {%- endif%}
-
 {%- if cookiecutter.mkdocs == "y" %}
 
+##@ Documentation
+
 .PHONY: docs-test
-docs-test: ## Test if documentation can be built without warnings or errors
+docs-test: ## Build documentation (strict — fail on warnings)
 	@uv run mkdocs build -s
 
 .PHONY: docs
-docs: ## Build and serve the documentation
+docs: ## Build and serve documentation locally
 	@uv run mkdocs serve
-
 {%- endif %}
-
-.PHONY: help
-help:
-	@uv run python -c "import re; \
-	[[print(f'\033[36m{m[0]:<20}\033[0m {m[1]}') for m in re.findall(r'^([a-zA-Z_-]+):.*?## (.*)$$', open(makefile).read(), re.M)] for makefile in ('$(MAKEFILE_LIST)').strip().split()]"
-
-.DEFAULT_GOAL := help
