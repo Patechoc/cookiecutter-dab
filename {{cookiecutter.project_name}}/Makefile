@@ -1,3 +1,5 @@
+CURRENT_VERSION := $(shell grep '^version' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -38,6 +40,32 @@ test: ## Run tests with pytest{% if cookiecutter.codecov == "y" %} and coverage{
 {%- else %}
 	@uv run python -m pytest --doctest-modules
 {%- endif%}
+
+##@ Release
+
+.PHONY: release
+release: ## Release a new version (usage: make release VERSION=X.Y.Z)
+ifndef VERSION
+	$(error ❌ VERSION not set. Usage: make release VERSION=X.Y.Z (e.g. 0.2.0). Current version: $(CURRENT_VERSION))
+endif
+	@if [ "$(VERSION)" = "$(CURRENT_VERSION)" ]; then \
+		echo "❌ VERSION $(VERSION) is the same as current version. Please specify a new version."; \
+		exit 1; \
+	fi
+	@if git tag -l | grep -q "^v$(VERSION)$$"; then \
+		echo "❌ Tag v$(VERSION) already exists. Please choose a different version."; \
+		exit 1; \
+	fi
+	@echo "🚀 Releasing version $(VERSION) (current: $(CURRENT_VERSION))..."
+	@sed -i.bak 's/^version = ".*"/version = "$(VERSION)"/' pyproject.toml && rm -f pyproject.toml.bak
+	@uv lock
+	@uv sync
+	@uv run git-cliff --config cliff.toml --tag v$(VERSION) --output CHANGELOG.md
+	@git add pyproject.toml uv.lock CHANGELOG.md
+	@git commit -m "bump version to v$(VERSION)"
+	@git tag -a v$(VERSION) -m "Release v$(VERSION)"
+	@git push origin main --tags
+	@echo "✅ Release v$(VERSION) pushed successfully."
 
 ##@ Python Packaging
 

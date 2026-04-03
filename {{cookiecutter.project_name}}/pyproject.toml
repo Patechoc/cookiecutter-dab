@@ -36,6 +36,7 @@ dev = [
     {%- endif %}
     {% if cookiecutter.codecov == 'y' %}"pytest-cov>=7.0.0",{% endif %}
     "ruff>=0.15.6",
+    "git-cliff>=2.7.0",
     {% if cookiecutter.mkdocs == 'y' %}"mkdocs>=1.6.1",
     "mkdocs-material>=9.7.5",
     "mkdocstrings[python]>=1.0.3",{% endif %}
