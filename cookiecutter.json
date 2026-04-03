@@ -18,8 +18,8 @@
     "n"
   ],
   "publish_to_pypi": [
-    "y",
-    "n"
+    "n",
+    "y"
   ],
   "deptry": [
     "y",
@@ -34,16 +34,17 @@
     "n"
   ],
   "dockerfile": [
-    "y",
-    "n"
+    "n",
+    "y"
   ],
   "devcontainer": [
     "y",
     "n"
   ],
   "type_checker": [
-    "mypy",
-    "ty"
+    "ty",
+    "mypy"
+    
   ],
   "open_source_license": [
     "MIT license",
