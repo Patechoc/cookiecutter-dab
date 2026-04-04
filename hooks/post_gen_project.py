@@ -94,3 +94,16 @@ if __name__ == "__main__":
         if os.path.isdir("src"):
             remove_dir("src")
         move_dir("{{cookiecutter.project_slug}}", os.path.join("src", "{{cookiecutter.project_slug}}"))
+
+    # Databricks Asset Bundle cleanup
+    if "{{cookiecutter.databricks_asset_bundle}}" != "y":
+        for dab_path in ["databricks.yml", "notebooks", "resources", "azuredevops", "data-contracts"]:
+            full_path = os.path.join(PROJECT_DIRECTORY, dab_path)
+            if os.path.isfile(full_path):
+                os.remove(full_path)
+            elif os.path.isdir(full_path):
+                shutil.rmtree(full_path)
+    elif "{{cookiecutter.data_contracts}}" != "y":
+        data_contracts_path = os.path.join(PROJECT_DIRECTORY, "data-contracts")
+        if os.path.isdir(data_contracts_path):
+            shutil.rmtree(data_contracts_path)

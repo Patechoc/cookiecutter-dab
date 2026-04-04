@@ -1,10 +1,10 @@
 {
-  "author": "Florian Maas",
-  "email": "foo@email.com",
-  "author_github_handle": "fpgmaas",
-  "project_name": "example-project",
+  "author": "Firstname Lastname",
+  "email": "foo.bar@redcross.no",
+  "author_github_handle": "foobar",
+  "project_name": "npb-analytics",
   "project_slug": "{{cookiecutter.project_name|lower|replace('-', '_')}}",
-  "project_description": "This is a template repository for Python projects that use uv for their dependency management.",
+  "project_description": "This is a repository for handling the data for '{{cookiecutter.project_name}}'.",
   "layout": [
     "flat",
     "src"
@@ -47,13 +47,113 @@
     
   ],
   "open_source_license": [
+    "Not open source",
     "MIT license",
     "BSD license",
     "ISC license",
     "Apache Software License 2.0",
-    "GNU General Public License v3",
-    "Not open source"
+    "GNU General Public License v3"
   ],
+  "databricks_asset_bundle": [
+    "y",
+    "n"
+  ],
+  "databricks_catalog_prefix": "mdp",
+  "databricks_schema_prefix": "crm_dyn365",
+  "databricks_workspace_role": [
+    "da",
+    "ip"
+  ],
+  "databricks_default_spark_version": "13.3.x-scala2.12",
+  "data_contracts": [
+    "y",
+    "n"
+  ],
+  "__prompts__": {
+    "author": "Your full name",
+    "email": "Your email address",
+    "author_github_handle": "Your GitHub username (used for links in generated docs)",
+    "project_name": "Project name — kebab-case, e.g. 'mdp-ingestions', 'npb-analytics', 'ipb-analytics' (no underscores)",
+    "project_slug": "Python package name — auto-computed from project_name (no dashes)",
+    "project_description": "One-line description of the project",
+    "layout": {
+      "__prompt__": "Python package layout",
+      "flat": "flat — package at root: project_slug/__init__.py",
+      "src": "src  — package under src/: src/project_slug/__init__.py"
+    },
+    "cicd_github_actions": {
+      "__prompt__": "Add GitHub Actions CI/CD workflows?",
+      "n": "n — no GitHub Actions",
+      "y": "y — add .github/workflows/"
+    },
+    "cicd_azure_pipelines": {
+      "__prompt__": "Add Azure Pipelines CI/CD?",
+      "y": "y — add .azure/azure-pipelines-*.yml",
+      "n": "n — no Azure Pipelines"
+    },
+    "publish_to_pypi": {
+      "__prompt__": "Add a PyPI publishing workflow?",
+      "n": "n — no PyPI publishing",
+      "y": "y — add publish step triggered on git tag"
+    },
+    "deptry": {
+      "__prompt__": "Add deptry for unused/missing dependency checking?",
+      "y": "y — add deptry check",
+      "n": "n — skip"
+    },
+    "mkdocs": {
+      "__prompt__": "Add MkDocs documentation site?",
+      "y": "y — add docs/ and mkdocs.yml",
+      "n": "n — skip"
+    },
+    "codecov": {
+      "__prompt__": "Add Codecov coverage reporting?",
+      "y": "y — add codecov.yaml and upload step",
+      "n": "n — skip"
+    },
+    "dockerfile": {
+      "__prompt__": "Add a Dockerfile?",
+      "n": "n — skip",
+      "y": "y — add Dockerfile"
+    },
+    "devcontainer": {
+      "__prompt__": "Add VS Code Dev Container configuration?",
+      "y": "y — add .devcontainer/",
+      "n": "n — skip"
+    },
+    "type_checker": {
+      "__prompt__": "Python type checker to use",
+      "ty": "ty   — Astral's fast type checker (recommended)",
+      "mypy": "mypy — the classic, more configurable option"
+    },
+    "open_source_license": {
+      "__prompt__": "Open source license (choose 'Not open source' for proprietary/internal projects)",
+      "MIT license": "MIT — permissive, widely used",
+      "BSD license": "BSD — permissive, similar to MIT",
+      "ISC license": "ISC — simplified permissive license",
+      "Apache Software License 2.0": "Apache 2.0 — permissive with patent grant",
+      "GNU General Public License v3": "GPL v3 — copyleft, requires derivative works to be open",
+      "Not open source": "Not open source — proprietary / internal"
+    },
+    "databricks_asset_bundle": {
+      "__prompt__": "Add Databricks Asset Bundle (DAB) support? Adds databricks.yml, notebooks/, resources/, and Azure DevOps DAB pipelines",
+      "y": "y — add DAB support",
+      "n": "n — plain Python project, no Databricks files"
+    },
+    "databricks_catalog_prefix": "Unity Catalog prefix — builds catalog names: {prefix}_dev, {prefix}_test, {prefix}_prod. Must be lowercase letters, digits and underscores (e.g. 'mdp', 'nrx', 'my_org')",
+    "databricks_schema_prefix": "Schema prefix for this project — builds schema names: {prefix}_bronze, {prefix}_silver, {prefix}_gold. Encodes the domain/system/department, e.g. 'crm_dyn365', 'npb_volunteering', 'ipb_pims'",
+    "databricks_workspace_role": {
+      "__prompt__": "Workspace role this bundle targets. Appended to DAB target names (e.g. release_ip_dev). Use 'ip' for ingestion-process workspaces, 'da' for data-applications workspaces",
+      "ip": "ip — Ingestion Process  (adb-mdp-dlz-ip-dev/test/prod-euw)",
+      "da": "da — Data Applications (adb-mdp-dlz-da-dev/test/prod-euw)"
+    },
+    "databricks_default_spark_version": "Databricks Runtime (DBR) version for all job clusters (e.g. '13.3.x-scala2.12', '15.4.x-scala2.12'). Can be changed later in databricks.yml",
+    "data_contracts": {
+      "__prompt__": "Add data contract YAML files? (only relevant when databricks_asset_bundle=y) Adds data-contracts/ with field definitions and quality rules",
+      "n": "n — no data contracts",
+      "y": "y — add data-contracts/ folder with examples"
+    }
+  },
   "_copy_without_render": [
     "cliff.toml"
   ]
