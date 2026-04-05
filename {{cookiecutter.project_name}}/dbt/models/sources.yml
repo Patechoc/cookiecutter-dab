@@ -1,0 +1,28 @@
+version: 2
+
+# Declares the bronze layer tables that dbt models read from.
+# The catalog is set per target in profiles.yml; the schema and table names are fixed.
+# dbt will resolve: <catalog>.<schema>.<table> at query time.
+
+sources:
+  - name: bronze
+    schema: "{{cookiecutter.databricks_schema_prefix}}_bronze"
+    description: >
+      Raw data from the source system — populated by the bronze notebook/job.
+      No transformations have been applied; this is data as received.
+    tables:
+      - name: nyctaxi_trips
+        description: >
+          Raw NYC taxi trip records ingested from samples.nyctaxi.trips.
+          Populated by the bronze ingestion job (notebooks/bronze/).
+        columns:
+          - name: tpep_pickup_datetime
+            description: Pickup timestamp.
+          - name: tpep_dropoff_datetime
+            description: Dropoff timestamp.
+          - name: passenger_count
+            description: Number of passengers (raw — may include nulls or invalid values).
+          - name: trip_distance
+            description: Trip distance in miles (raw).
+          - name: fare_amount
+            description: Fare amount in USD (raw — may include nulls or negatives).

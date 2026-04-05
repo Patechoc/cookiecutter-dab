@@ -1,0 +1,26 @@
+name: "{{cookiecutter.project_slug}}"
+version: "1.0.0"
+config-version: 2
+
+# Profile defined in ~/.dbt/profiles.yml — see dbt/profiles_sample.yml for a template.
+profile: "{{cookiecutter.project_slug}}"
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+# Model materialisation defaults.
+# All silver and gold models are materialised as Delta tables in Unity Catalog.
+models:
+  {{cookiecutter.project_slug}}:
+    silver:
+      +materialized: table
+      +file_format: delta
+    gold:
+      +materialized: table
+      +file_format: delta
+
+# Variables passed to models at run time.
+# Override per target via --vars '{"env": "prod"}' or in the job definition.
+vars:
+  env: dev

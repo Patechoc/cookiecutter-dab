@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: daily_trip_summary
+    description: >
+      Daily aggregated NYC taxi trip metrics.
+      One row per calendar day. Ready for dashboards and reports.
+    columns:
+      - name: pickup_date
+        description: Calendar date of trip pickup.
+        tests:
+          - not_null
+          - unique
+      - name: total_trips
+        description: Number of completed trips on that date.
+        tests:
+          - not_null
+      - name: avg_fare_usd
+        description: Average fare amount in USD.
+        tests:
+          - not_null
+      - name: avg_trip_distance_miles
+        description: Average trip distance in miles.
+        tests:
+          - not_null
+      - name: avg_duration_minutes
+        description: Average trip duration in minutes.
+        tests:
+          - not_null
+      - name: total_passengers
+        description: Total number of passengers carried on that date.
+        tests:
+          - not_null

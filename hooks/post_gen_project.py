@@ -97,12 +97,26 @@ if __name__ == "__main__":
 
     # Databricks Asset Bundle cleanup
     if "{{cookiecutter.databricks_asset_bundle}}" != "y":
-        for dab_path in ["databricks.yml", "notebooks", "resources", "azuredevops", "data-contracts"]:
+        for dab_path in ["databricks.yml", "notebooks", "resources", "azuredevops", "data-contracts", "dbt"]:
             full_path = os.path.join(PROJECT_DIRECTORY, dab_path)
             if os.path.isfile(full_path):
                 os.remove(full_path)
             elif os.path.isdir(full_path):
                 shutil.rmtree(full_path)
+
+        # Remove DAB-specific Python subpackages (bronze/silver/gold/utils).
+        # These are only meaningful in a DAB project; a plain Python package
+        # should only have the generic foo.py example.
+        if "{{cookiecutter.layout}}" == "src":
+            pkg_root = os.path.join(PROJECT_DIRECTORY, "src", "{{cookiecutter.project_slug}}")
+        else:
+            pkg_root = os.path.join(PROJECT_DIRECTORY, "{{cookiecutter.project_slug}}")
+
+        for dab_pkg in ["bronze", "silver", "gold", "utils"]:
+            dir_path = os.path.join(pkg_root, dab_pkg)
+            if os.path.isdir(dir_path):
+                shutil.rmtree(dir_path)
+
     elif "{{cookiecutter.data_contracts}}" != "y":
         data_contracts_path = os.path.join(PROJECT_DIRECTORY, "data-contracts")
         if os.path.isdir(data_contracts_path):

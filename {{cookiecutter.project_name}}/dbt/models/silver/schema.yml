@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: nyctaxi_trips_clean
+    description: >
+      Cleansed NYC taxi trips from the bronze layer.
+      Nulls removed, passenger count validated, trip_duration_minutes derived.
+    columns:
+      - name: tpep_pickup_datetime
+        description: Trip pickup timestamp.
+        tests:
+          - not_null
+      - name: tpep_dropoff_datetime
+        description: Trip dropoff timestamp.
+        tests:
+          - not_null
+      - name: passenger_count
+        description: Number of passengers (validated 1-6).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6]
+      - name: fare_amount
+        description: Fare amount in USD.
+        tests:
+          - not_null
+      - name: trip_duration_minutes
+        description: Trip duration derived from dropoff minus pickup (minutes, rounded to 2 dp).
+        tests:
+          - not_null

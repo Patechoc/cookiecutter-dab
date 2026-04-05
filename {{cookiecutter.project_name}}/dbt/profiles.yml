@@ -1,0 +1,56 @@
+# dbt connection profile for {{cookiecutter.project_slug}}.
+#
+# This file is safe to commit — it contains NO credentials.
+# All secrets are read from environment variables at runtime.
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  WARNING: never replace env_var() calls with hardcoded values here.    │
+# │  Store all secrets in dbt/.env (gitignored) — see dbt/.env.example.   │
+# └─────────────────────────────────────────────────────────────────────────┘
+#
+# Setup (one-time):
+#   cp dbt/.env.example dbt/.env
+#   # fill in dbt/.env with your credentials
+#   source dbt/.env          # or use direnv / your IDE's .env support
+#
+# dbt uses ~/.dbt/profiles.yml by default.
+# To use this project-local file, set DBT_PROFILES_DIR (already in .env.example):
+#   export DBT_PROFILES_DIR=$(pwd)/dbt
+#
+# Then run normally:
+#   dbt run --target dev
+#   dbt test --target dev
+
+{{cookiecutter.project_slug}}:
+  target: dev
+  outputs:
+
+    # ── Personal development ──────────────────────────────────────────────────
+    dev:
+      type: databricks
+      catalog: "{{cookiecutter.databricks_catalog_prefix}}_dev{% if cookiecutter.databricks_catalog_suffix %}_{{cookiecutter.databricks_catalog_suffix}}{% endif %}"
+      schema: "{{cookiecutter.databricks_schema_prefix}}_silver"
+      host: {% raw %}"{{ env_var('DBT_DATABRICKS_HOST_DEV') }}"{% endraw %}
+      http_path: {% raw %}"{{ env_var('DBT_DATABRICKS_HTTP_PATH_DEV') }}"{% endraw %}
+      token: {% raw %}"{{ env_var('DBT_DATABRICKS_TOKEN_DEV') }}"{% endraw %}
+      threads: 4
+
+    # ── Shared TEST environment ───────────────────────────────────────────────
+    test:
+      type: databricks
+      catalog: "{{cookiecutter.databricks_catalog_prefix}}_test{% if cookiecutter.databricks_catalog_suffix %}_{{cookiecutter.databricks_catalog_suffix}}{% endif %}"
+      schema: "{{cookiecutter.databricks_schema_prefix}}_silver"
+      host: {% raw %}"{{ env_var('DBT_DATABRICKS_HOST_TEST') }}"{% endraw %}
+      http_path: {% raw %}"{{ env_var('DBT_DATABRICKS_HTTP_PATH_TEST') }}"{% endraw %}
+      token: {% raw %}"{{ env_var('DBT_DATABRICKS_TOKEN_TEST') }}"{% endraw %}
+      threads: 4
+
+    # ── Production ───────────────────────────────────────────────────────────
+    prod:
+      type: databricks
+      catalog: "{{cookiecutter.databricks_catalog_prefix}}_prod{% if cookiecutter.databricks_catalog_suffix %}_{{cookiecutter.databricks_catalog_suffix}}{% endif %}"
+      schema: "{{cookiecutter.databricks_schema_prefix}}_silver"
+      host: {% raw %}"{{ env_var('DBT_DATABRICKS_HOST_PROD') }}"{% endraw %}
+      http_path: {% raw %}"{{ env_var('DBT_DATABRICKS_HTTP_PATH_PROD') }}"{% endraw %}
+      token: {% raw %}"{{ env_var('DBT_DATABRICKS_TOKEN_PROD') }}"{% endraw %}
+      threads: 4
