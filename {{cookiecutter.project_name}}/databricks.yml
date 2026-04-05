@@ -43,6 +43,22 @@ variables:
     description: "Databricks Runtime (DBR) version for all job clusters."
     default: {{cookiecutter.databricks_default_spark_version}}
 
+  # SQL warehouse used by dbt jobs (dbt_task runs on a warehouse, not a cluster).
+  # Find the ID in Databricks UI → SQL Warehouses → <warehouse> → Overview → HTTP path
+  # (the last segment of the path, e.g. /sql/1.0/warehouses/abc123def456 → abc123def456).
+  # TODO: replace with your warehouse ID, or override at deploy time:
+  #   databricks bundle deploy --var sql_warehouse_id=abc123def456
+  sql_warehouse_id:
+    description: "SQL warehouse ID used by dbt_task jobs. Find it in SQL Warehouses → HTTP path."
+    default: ""
+
+  # dbt target to use when running dbt_task jobs.
+  # Mapped to the dbt profile outputs in dbt/profiles.yml (dev / test / prod).
+  # Overridden per release target below.
+  dbt_target:
+    description: "dbt profile target for job runs (dev / test / prod)."
+    default: dev
+
   # Single-node job cluster — suitable for most ingestion and transformation workloads.
   # To define additional cluster profiles, add new complex variables and reference them in resources/.
   job_cluster_single_node:
@@ -79,6 +95,7 @@ artifacts:
 sync:
   include:
     - notebooks/**
+    - dbt/**
   exclude:
     - .git
     - .github
@@ -158,6 +175,7 @@ targets:
       jobs_max_concurrent_runs: 1
     variables:
       catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_dev_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_dev{% endif %}
+      dbt_target: dev
 
   # ── Release — TEST ───────────────────────────────────────────────────────────
   # Deployed automatically after DEV deployment succeeds.
@@ -172,6 +190,7 @@ targets:
       trigger_pause_status: PAUSED
     variables:
       catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_test_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_test{% endif %}
+      dbt_target: test
 
   # ── Release — PROD ───────────────────────────────────────────────────────────
   # Deployed after a manual approval gate in the CD pipeline.
@@ -184,3 +203,4 @@ targets:
       root_path: /Workspace/release/${bundle.name}
     variables:
       catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_prod_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_prod{% endif %}
+      dbt_target: prod

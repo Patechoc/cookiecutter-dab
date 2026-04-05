@@ -1,0 +1,101 @@
+resources:
+  jobs:
+    dbt_transformations:
+      name: "[${bundle.target}] {{cookiecutter.project_slug}} - dbt Transformations"
+      description: >-
+        Runs the dbt silver and gold models using the native Databricks dbt_task.
+        Executes using serverless compute on a SQL warehouse — no cluster to manage.
+        Databricks handles Unity Catalog authentication automatically; no credentials in code.
+
+        This job is the dbt alternative to the Python silver_transform and gold_aggregate jobs.
+        In a real project, choose one approach and remove the other.
+
+        Prerequisite: bronze_ingestion must have run first (dbt reads from the bronze Delta table).
+
+      tags:
+        project: "{{cookiecutter.project_slug}}"
+        layer: silver_gold
+        tool: dbt
+        managed_by: dab
+
+      # Serverless environment — used by dbt_task instead of a cluster.
+      # dbt_task requires environment_key to point to a serverless environment;
+      # the warehouse_id in each task specifies which SQL warehouse executes the SQL.
+      environments:
+        - environment_key: dbt_serverless
+          spec:
+            client: "1"
+
+      # Run at 04:00 every day — after bronze_ingestion (03:00) has completed.
+      trigger:
+        pause_status: UNPAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      tasks:
+        # ── Silver ────────────────────────────────────────────────────────────
+        # Runs dbt silver models then immediately tests them.
+        # dbt resolves model dependencies within the silver layer automatically
+        # via ref(). Add more silver models alongside nyctaxi_trips_clean.sql
+        # in dbt/models/silver/ — they will be picked up by the --select silver selector.
+        - task_key: dbt_silver_run
+          description: "Run all dbt silver models."
+          environment_key: dbt_serverless
+          dbt_task:
+            project_directory: ${workspace.file_path}/dbt
+            profiles_directory: ${workspace.file_path}/dbt
+            commands:
+              - "dbt run --select silver --target ${var.dbt_target}"
+            warehouse_id: ${var.sql_warehouse_id}
+
+        - task_key: dbt_silver_test
+          description: "Run dbt data tests for all silver models."
+          depends_on:
+            - task_key: dbt_silver_run
+          environment_key: dbt_serverless
+          dbt_task:
+            project_directory: ${workspace.file_path}/dbt
+            profiles_directory: ${workspace.file_path}/dbt
+            commands:
+              - "dbt test --select silver --target ${var.dbt_target}"
+            warehouse_id: ${var.sql_warehouse_id}
+
+        # ── Gold ──────────────────────────────────────────────────────────────
+        # Gold models depend on silver output — runs after silver tests pass.
+        # Add more gold models in dbt/models/gold/ — the --select gold selector
+        # picks them up. Use ref('silver_model') in your SQL to express
+        # cross-model dependencies within gold or from silver to gold.
+        - task_key: dbt_gold_run
+          description: "Run all dbt gold models."
+          depends_on:
+            - task_key: dbt_silver_test
+          environment_key: dbt_serverless
+          dbt_task:
+            project_directory: ${workspace.file_path}/dbt
+            profiles_directory: ${workspace.file_path}/dbt
+            commands:
+              - "dbt run --select gold --target ${var.dbt_target}"
+            warehouse_id: ${var.sql_warehouse_id}
+
+        - task_key: dbt_gold_test
+          description: "Run dbt data tests for all gold models."
+          depends_on:
+            - task_key: dbt_gold_run
+          environment_key: dbt_serverless
+          dbt_task:
+            project_directory: ${workspace.file_path}/dbt
+            profiles_directory: ${workspace.file_path}/dbt
+            commands:
+              - "dbt test --select gold --target ${var.dbt_target}"
+            warehouse_id: ${var.sql_warehouse_id}
+
+      queue:
+        enabled: false
+
+      max_concurrent_runs: 1
+
+      email_notifications:
+        on_failure:
+          - "{{cookiecutter.email}}"
+        no_alert_for_skipped_runs: true
