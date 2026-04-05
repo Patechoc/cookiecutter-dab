@@ -44,3 +44,12 @@ if "{{cookiecutter.databricks_asset_bundle}}" == "y":
             "Example valid values: 'crm_dyn365', 'npb_volunteering', 'example_source'"
         )
         sys.exit(1)
+
+    catalog_suffix = "{{cookiecutter.databricks_catalog_suffix}}"
+    if catalog_suffix and not re.match(DAB_IDENTIFIER_REGEX, catalog_suffix):
+        print(
+            f"ERROR: databricks_catalog_suffix '{catalog_suffix}' must be empty or contain only lowercase letters, "
+            "digits and underscores, starting with a letter. "
+            "Examples: '' (empty, for per-env catalogs), 'bronze', 'silver', 'gold', 'sensitive_data'"
+        )
+        sys.exit(1)

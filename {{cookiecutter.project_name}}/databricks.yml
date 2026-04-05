@@ -31,8 +31,13 @@ variables:
   catalog_name:
     description: >-
       Full Unity Catalog name for this deployment target.
-      Overridden per target below (e.g. mdp_dev, mdp_test, mdp_prod).
-    default: {{cookiecutter.databricks_catalog_prefix}}_dev
+      {% if cookiecutter.databricks_catalog_suffix -%}
+      Using per-layer catalog layout: {prefix}_{env}_{suffix} → {{cookiecutter.databricks_catalog_prefix}}_dev_{{cookiecutter.databricks_catalog_suffix}} / _test_ / _prod_.
+      To migrate to per-environment catalogs (recommended), clear databricks_catalog_suffix.
+      {%- else -%}
+      Overridden per target below: {prefix}_{env} → {{cookiecutter.databricks_catalog_prefix}}_dev / _test / _prod.
+      {%- endif %}
+    default: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_dev_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_dev{% endif %}
 
   spark_version:
     description: "Databricks Runtime (DBR) version for all job clusters."
@@ -119,7 +124,7 @@ targets:
       host:
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}
     variables:
-      catalog_name: {{cookiecutter.databricks_catalog_prefix}}_dev
+      catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_dev_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_dev{% endif %}
 
   # ── CI validation ────────────────────────────────────────────────────────────
   # Used by the CI pipeline (azuredevops/ci.yml) on Pull Requests.
@@ -135,7 +140,7 @@ targets:
       trigger_pause_status: PAUSED
       pipelines_development: true
     variables:
-      catalog_name: {{cookiecutter.databricks_catalog_prefix}}_test
+      catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_test_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_test{% endif %}
 
   # ── Release — DEV ────────────────────────────────────────────────────────────
   # Deployed automatically by the CD pipeline on every merge to main.
@@ -150,7 +155,7 @@ targets:
       trigger_pause_status: PAUSED
       jobs_max_concurrent_runs: 1
     variables:
-      catalog_name: {{cookiecutter.databricks_catalog_prefix}}_dev
+      catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_dev_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_dev{% endif %}
 
   # ── Release — TEST ───────────────────────────────────────────────────────────
   # Deployed automatically after DEV deployment succeeds.
@@ -164,7 +169,7 @@ targets:
     presets:
       trigger_pause_status: PAUSED
     variables:
-      catalog_name: {{cookiecutter.databricks_catalog_prefix}}_test
+      catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_test_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_test{% endif %}
 
   # ── Release — PROD ───────────────────────────────────────────────────────────
   # Deployed after a manual approval gate in the CD pipeline.
@@ -176,4 +181,4 @@ targets:
       host:
       root_path: /Workspace/release/${bundle.name}
     variables:
-      catalog_name: {{cookiecutter.databricks_catalog_prefix}}_prod
+      catalog_name: {% if cookiecutter.databricks_catalog_suffix %}{{cookiecutter.databricks_catalog_prefix}}_prod_{{cookiecutter.databricks_catalog_suffix}}{% else %}{{cookiecutter.databricks_catalog_prefix}}_prod{% endif %}

@@ -59,6 +59,7 @@
     "n"
   ],
   "databricks_catalog_prefix": "mdp",
+  "databricks_catalog_suffix": "bronze",
   "databricks_schema_prefix": "crm_dyn365",
   "databricks_workspace_role": [
     "da",
@@ -141,6 +142,7 @@
       "n": "n — plain Python project, no Databricks files"
     },
     "databricks_catalog_prefix": "Unity Catalog prefix — builds catalog names: {prefix}_dev, {prefix}_test, {prefix}_prod. Must be lowercase letters, digits and underscores (e.g. 'mdp', 'nrx', 'my_org')",
+    "databricks_catalog_suffix": "Unity Catalog suffix — appended after the environment to form the full catalog name.\n  Leave EMPTY ('') for the recommended long-term pattern: {prefix}_{env} → mdp_dev / mdp_test / mdp_prod (one catalog per environment).\n  Set to a layer name (e.g. 'bronze', 'silver', 'gold') to match the current infrastructure layout: {prefix}_{env}_{suffix} → mdp_dev_bronze / mdp_test_bronze / mdp_prod_bronze.\n  NOTE: Per-layer catalogs are a transitional pattern. The long-term goal is per-environment catalogs (empty suffix) for better data isolation.\n  Can also be set to a project-specific name for datasets with strict data-sensitivity requirements that need their own Azure Storage account.",
     "databricks_schema_prefix": "Schema prefix for this project — builds schema names: {prefix}_bronze, {prefix}_silver, {prefix}_gold. Encodes the domain/system/department, e.g. 'crm_dyn365', 'npb_volunteering', 'ipb_pims'",
     "databricks_workspace_role": {
       "__prompt__": "Workspace role this bundle targets. Appended to DAB target names (e.g. release_ip_dev). Use 'ip' for ingestion-process workspaces, 'da' for data-applications workspaces",
