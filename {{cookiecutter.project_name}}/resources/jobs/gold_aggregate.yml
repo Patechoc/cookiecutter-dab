@@ -1,0 +1,46 @@
+resources:
+  jobs:
+    gold_aggregate:
+      name: "[${bundle.target}] {{cookiecutter.project_slug}} - Gold Aggregate"
+      description: >-
+        Reads from the silver layer, computes the daily trip summary aggregation
+        (Python path), and writes the business-ready result to the gold Delta table.
+        Runs after silver_transform completes.
+
+      tags:
+        project: "{{cookiecutter.project_slug}}"
+        layer: gold
+        managed_by: dab
+
+      # Run at 05:00 every day — after silver (04:00) has had time to finish.
+      trigger:
+        pause_status: UNPAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      # One task per gold output table. Gold tasks often depend on multiple silver entities —
+      # express those cross-entity dependencies with depends_on.
+      tasks:
+        - task_key: aggregate_daily_trip_summary
+          description: >-
+            Demo: aggregate nyctaxi_trips from silver into the daily_trip_summary gold table.
+            Replace with your actual business aggregation when adapting to a real project.
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/gold/{{cookiecutter.databricks_schema_prefix}}_silver_to_gold
+            source: WORKSPACE
+            base_parameters:
+              env: ${bundle.target}
+          new_cluster: ${var.job_cluster_single_node}
+          libraries:
+            - whl: ${workspace.root_path}/artifacts/*.whl
+
+      queue:
+        enabled: false
+
+      max_concurrent_runs: 1
+
+      email_notifications:
+        on_failure:
+          - "{{cookiecutter.email}}"
+        no_alert_for_skipped_runs: true

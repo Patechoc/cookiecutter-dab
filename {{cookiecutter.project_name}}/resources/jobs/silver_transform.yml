@@ -1,0 +1,46 @@
+resources:
+  jobs:
+    silver_transform:
+      name: "[${bundle.target}] {{cookiecutter.project_slug}} - Silver Transform"
+      description: >-
+        Reads from the bronze layer, applies cleansing and conforming rules
+        (Python path), and writes to the silver Delta table.
+        Runs after bronze_ingestion completes.
+
+      tags:
+        project: "{{cookiecutter.project_slug}}"
+        layer: silver
+        managed_by: dab
+
+      # Run at 04:00 every day — after bronze (03:00) has had time to finish.
+      trigger:
+        pause_status: UNPAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      # One task per entity. All silver tasks for this project belong in this job.
+      # Use depends_on if one entity's silver output feeds another entity's silver logic.
+      tasks:
+        - task_key: transform_nyctaxi_trips
+          description: >-
+            Demo: cleanse and conform nyctaxi_trips from bronze to silver.
+            Replace with your actual entity when adapting to a real project.
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/silver/{{cookiecutter.databricks_schema_prefix}}_bronze_to_silver
+            source: WORKSPACE
+            base_parameters:
+              env: ${bundle.target}
+          new_cluster: ${var.job_cluster_single_node}
+          libraries:
+            - whl: ${workspace.root_path}/artifacts/*.whl
+
+      queue:
+        enabled: false
+
+      max_concurrent_runs: 1
+
+      email_notifications:
+        on_failure:
+          - "{{cookiecutter.email}}"
+        no_alert_for_skipped_runs: true

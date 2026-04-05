@@ -1,0 +1,37 @@
+resources:
+  jobs:
+    unit_tests:
+      name: "[${bundle.target}] {{cookiecutter.project_slug}} - Unit Tests"
+      description: >-
+        Runs the pytest unit test suite on a cluster. Used by the CI pipeline
+        to validate business logic in the Python wheel after deployment.
+        All tests should also pass locally with `uv run pytest tests/`.
+
+      tags:
+        project: "{{cookiecutter.project_slug}}"
+        purpose: ci
+        managed_by: dab
+
+      # No schedule — triggered by the CI pipeline only (azuredevops/ci.yml).
+      # Never run on a schedule; trigger_pause_status is always PAUSED.
+      trigger:
+        pause_status: PAUSED
+
+      tasks:
+        - task_key: run_unit_tests
+          description: "Install the wheel and run pytest."
+          spark_python_task:
+            python_file: ${workspace.root_path}/artifacts/run_tests.py
+            parameters:
+              - "--tb=short"
+              - "-v"
+          new_cluster: ${var.job_cluster_single_node}
+          libraries:
+            - whl: ${workspace.root_path}/artifacts/*.whl
+            - pypi:
+                package: pytest>=9.0.2
+
+      queue:
+        enabled: false   # unit tests must not queue — fail fast in CI
+
+      max_concurrent_runs: 1

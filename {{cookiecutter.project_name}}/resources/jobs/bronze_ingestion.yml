@@ -1,0 +1,61 @@
+resources:
+  jobs:
+    bronze_ingestion:
+      name: "[${bundle.target}] {{cookiecutter.project_slug}} - Bronze Ingestion"
+      description: >-
+        Reads raw data from the source system (demo: samples.nyctaxi.trips) and
+        appends it unchanged to the bronze Delta table. Runs on a single-node cluster;
+        no transformation applied here.
+
+      tags:
+        project: "{{cookiecutter.project_slug}}"
+        layer: bronze
+        managed_by: dab
+
+      # Run at 03:00 every day (paused in dev/test targets, active in prod).
+      # To trigger manually: databricks bundle run bronze_ingestion --target dev_personal
+      trigger:
+        pause_status: UNPAUSED
+        periodic:
+          interval: 1
+          unit: DAYS
+
+      # Overridden per target via presets.trigger_pause_status in databricks.yml.
+      # dev_personal and release_*_dev/test have trigger_pause_status: PAUSED.
+
+      # Each task below represents one source entity (table, API endpoint, file, etc.).
+      # Add a new task here for each new source entity — do NOT create a separate job file.
+      # Use depends_on to express dependencies between tasks in the same source system.
+      #
+      # Example with two entities and a dependency:
+      #
+      #   - task_key: ingest_accounts
+      #     ...
+      #   - task_key: ingest_contacts
+      #     depends_on:
+      #       - task_key: ingest_accounts   # contacts reference accounts
+      #     ...
+      tasks:
+        - task_key: ingest_nyctaxi_trips
+          description: >-
+            Demo: ingest samples.nyctaxi.trips into the bronze layer.
+            Replace with your actual source entity when adapting to a real project.
+            Add more tasks below for additional source entities in the same system.
+          notebook_task:
+            notebook_path: ${workspace.file_path}/notebooks/bronze/{{cookiecutter.databricks_schema_prefix}}_to_bronze
+            source: WORKSPACE
+            base_parameters:
+              env: ${bundle.target}
+          new_cluster: ${var.job_cluster_single_node}
+          libraries:
+            - whl: ${workspace.root_path}/artifacts/*.whl
+
+      queue:
+        enabled: false
+
+      max_concurrent_runs: 1
+
+      email_notifications:
+        on_failure:
+          - "{{cookiecutter.email}}"
+        no_alert_for_skipped_runs: true
