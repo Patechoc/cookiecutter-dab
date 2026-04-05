@@ -1,0 +1,77 @@
+# CI pipeline — triggered on every Pull Request targeting main.
+#
+# Validates:
+#   1. Python code quality (ruff, pre-commit)
+#   2. Unit tests (pytest — runs locally, no cluster needed)
+#   3. DAB bundle structure (databricks bundle validate — no deployment)
+#
+# The bundle validate step checks that all variable references resolve,
+# all resource YAML files parse correctly, and all notebook paths exist.
+# It does NOT deploy anything to a workspace.
+#
+# Prerequisites (configure once in Azure DevOps):
+#   - Variable group "databricks-dev-credentials" linked to Key Vault kv-nrx-dev,
+#     exposing: DATABRICKS-HOST, DATABRICKS-CLIENT-ID, DATABRICKS-CLIENT-SECRET
+#     (bundle validate needs these to authenticate for workspace-level checks)
+
+trigger: none  # PRs only — see pr: below
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  pythonVersion: '3.12'
+
+stages:
+  # ── Stage 1: Python quality and tests ──────────────────────────────────────
+  - stage: PythonCI
+    displayName: 'Python — Lint & Test'
+    jobs:
+      - job: LintAndTest
+        displayName: 'ruff + pytest'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: $(pythonVersion)
+            displayName: 'Set up Python $(pythonVersion)'
+
+          - script: pip install uv
+            displayName: 'Install uv'
+
+          - script: uv sync --frozen
+            displayName: 'Install dependencies'
+
+          - script: uv run pre-commit run -a
+            displayName: 'Lint (ruff + pre-commit hooks)'
+
+          - script: uv run python -m pytest tests/ -v
+            displayName: 'Run unit tests'
+
+  # ── Stage 2: Databricks bundle validation ──────────────────────────────────
+  - stage: BundleValidate
+    displayName: 'DAB — Bundle Validate'
+    dependsOn: []  # Run in parallel with PythonCI
+    jobs:
+      - job: Validate
+        displayName: 'databricks bundle validate'
+        variables:
+          - group: databricks-dev-credentials  # Key Vault: kv-nrx-dev
+        steps:
+          - script: |
+              curl -fsSL \
+                https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
+                | sh
+            displayName: 'Install Databricks CLI'
+
+          - script: |
+              databricks bundle validate --target dev_personal
+            displayName: 'Validate bundle (dev_personal target)'
+            env:
+              DATABRICKS_HOST: $(DATABRICKS-HOST)
+              DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
+              DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)

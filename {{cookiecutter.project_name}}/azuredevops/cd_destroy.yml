@@ -1,0 +1,46 @@
+# Destroy pipeline — manual trigger only.
+#
+# Removes all Databricks resources (jobs, schedules, artifacts) deployed by this bundle
+# in the chosen environment. This does NOT delete Unity Catalog tables or data.
+#
+# When to use:
+#   - Decommissioning a project
+#   - Cleaning up a dev workspace after a feature branch experiment
+#   - Rolling back a bad deployment (re-deploy after fixing)
+#
+# Prerequisites: same service connection and Key Vaults as cd_deploy.yml.
+# The "databricks-prod" ADO Environment has an approval gate — destroying PROD
+# requires the same manual approval as deploying to it.
+
+trigger: none
+pr: none
+
+parameters:
+  - name: environment
+    displayName: 'Environment to destroy'
+    type: string
+    values:
+      - dev
+      - test
+      - prod
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Destroy
+    displayName: "Destroy → {% raw %}${{ parameters.environment }}{% endraw %}"
+    jobs:
+      - deployment: Destroy
+        displayName: "Destroy bundle in {% raw %}${{ parameters.environment }}{% endraw %}"
+        environment: "databricks-{% raw %}${{ parameters.environment }}{% endraw %}"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: templates/dab_destroy.yml
+                  parameters:
+                    bundle_target: "release_{{cookiecutter.databricks_workspace_role}}_{% raw %}${{ parameters.environment }}{% endraw %}"
+                    key_vault_name: "kv-nrx-{% raw %}${{ parameters.environment }}{% endraw %}"

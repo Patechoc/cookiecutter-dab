@@ -1,0 +1,87 @@
+# CD pipeline — triggered on every merge to main.
+#
+# Deploys the Databricks Asset Bundle sequentially:
+#   DEV  (automatic) → TEST (automatic) → PROD (manual approval gate)
+#
+# Each stage:
+#   1. Fetches workspace credentials from the environment's Azure Key Vault.
+#   2. Builds the Python wheel with `uv build`.
+#   3. Deploys the bundle with `databricks bundle deploy`.
+#
+# Prerequisites (configure once in Azure DevOps):
+#   - Service connection "nrx-azure-service-connection" with access to all three Key Vaults.
+#   - ADO Environments: "databricks-dev", "databricks-test", "databricks-prod".
+#     Add an approval check on "databricks-prod" for the manual gate.
+#   - Key Vaults per environment expose:
+#       DATABRICKS-HOST, DATABRICKS-CLIENT-ID, DATABRICKS-CLIENT-SECRET
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr: none  # CD only — not triggered on PRs
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  # ── DEV ────────────────────────────────────────────────────────────────────
+  - stage: DeployDEV
+    displayName: 'Deploy → DEV'
+    jobs:
+      - deployment: DeployDEV
+        displayName: 'Deploy bundle to DEV workspace'
+        environment: 'databricks-dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: templates/dab_deploy.yml
+                  parameters:
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_dev'
+                    key_vault_name: 'kv-nrx-dev'
+
+  # ── TEST ───────────────────────────────────────────────────────────────────
+  - stage: DeployTest
+    displayName: 'Deploy → TEST'
+    dependsOn: DeployDEV
+    condition: succeeded('DeployDEV')
+    jobs:
+      - deployment: DeployTest
+        displayName: 'Deploy bundle to TEST workspace'
+        environment: 'databricks-test'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: templates/dab_deploy.yml
+                  parameters:
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_test'
+                    key_vault_name: 'kv-nrx-test'
+
+  # ── PROD ───────────────────────────────────────────────────────────────────
+  # Manual approval gate is configured on the "databricks-prod" ADO Environment.
+  # The pipeline pauses here until an approver accepts or rejects.
+  - stage: DeployProd
+    displayName: 'Deploy → PROD'
+    dependsOn: DeployTest
+    condition: succeeded('DeployTest')
+    jobs:
+      - deployment: DeployProd
+        displayName: 'Deploy bundle to PROD workspace'
+        environment: 'databricks-prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: templates/dab_deploy.yml
+                  parameters:
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_prod'
+                    key_vault_name: 'kv-nrx-prod'

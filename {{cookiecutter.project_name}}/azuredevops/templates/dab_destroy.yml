@@ -1,0 +1,43 @@
+# Reusable template: destroy DAB bundle resources in one environment.
+#
+# Called by cd_destroy.yml. Removes Databricks jobs, schedules, and uploaded
+# artifacts. Does NOT drop Unity Catalog tables or delete any data.
+
+parameters:
+  - name: bundle_target
+    displayName: 'DAB target name (e.g. release_ip_dev)'
+    type: string
+
+  - name: key_vault_name
+    displayName: 'Azure Key Vault name for this environment'
+    type: string
+
+steps:
+  # ── 1. Install tools ───────────────────────────────────────────────────────
+  - script: |
+      curl -fsSL \
+        https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
+        | sh
+    displayName: 'Install Databricks CLI'
+
+  # ── 2. Fetch credentials from Key Vault ───────────────────────────────────
+  - task: AzureKeyVault@2
+    inputs:
+      azureSubscription: 'nrx-azure-service-connection'
+      KeyVaultName: {% raw %}${{ parameters.key_vault_name }}{% endraw %}
+
+      SecretsFilter: 'DATABRICKS-HOST,DATABRICKS-CLIENT-ID,DATABRICKS-CLIENT-SECRET'
+      RunAsPreJob: false
+    displayName: "Fetch Databricks credentials from {% raw %}${{ parameters.key_vault_name }}{% endraw %}"
+
+  # ── 3. Destroy bundle resources ────────────────────────────────────────────
+  # --auto-approve: skips the interactive confirmation prompt (required in CI).
+  - script: |
+      databricks bundle destroy \
+        --target {% raw %}${{ parameters.bundle_target }}{% endraw %} \
+        --auto-approve
+    displayName: "Destroy bundle resources in {% raw %}${{ parameters.bundle_target }}{% endraw %}"
+    env:
+      DATABRICKS_HOST: $(DATABRICKS-HOST)
+      DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
+      DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)

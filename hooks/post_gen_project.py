@@ -117,7 +117,15 @@ if __name__ == "__main__":
             if os.path.isdir(dir_path):
                 shutil.rmtree(dir_path)
 
-    elif "{{cookiecutter.data_contracts}}" != "y":
-        data_contracts_path = os.path.join(PROJECT_DIRECTORY, "data-contracts")
-        if os.path.isdir(data_contracts_path):
-            shutil.rmtree(data_contracts_path)
+    else:
+        # DAB is enabled — apply sub-option cleanup.
+        if "{{cookiecutter.cicd_azure_pipelines}}" != "y":
+            # Azure Pipelines not wanted: remove the DAB pipeline files.
+            azuredevops_path = os.path.join(PROJECT_DIRECTORY, "azuredevops")
+            if os.path.isdir(azuredevops_path):
+                shutil.rmtree(azuredevops_path)
+
+        if "{{cookiecutter.data_contracts}}" != "y":
+            data_contracts_path = os.path.join(PROJECT_DIRECTORY, "data-contracts")
+            if os.path.isdir(data_contracts_path):
+                shutil.rmtree(data_contracts_path)

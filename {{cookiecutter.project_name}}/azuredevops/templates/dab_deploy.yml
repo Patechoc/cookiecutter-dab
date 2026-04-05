@@ -1,0 +1,63 @@
+# Reusable template: build wheel + deploy DAB bundle to one environment.
+#
+# Called by cd_deploy.yml for each stage (DEV / TEST / PROD).
+# Credentials are fetched from the environment's Azure Key Vault at runtime —
+# no secrets are stored in this file or in the repository.
+
+parameters:
+  - name: bundle_target
+    displayName: 'DAB target name (e.g. release_ip_dev)'
+    type: string
+
+  - name: key_vault_name
+    displayName: 'Azure Key Vault name for this environment'
+    type: string
+
+steps:
+  # ── 1. Install tools ───────────────────────────────────────────────────────
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+    displayName: 'Set up Python 3.12'
+
+  - script: pip install uv
+    displayName: 'Install uv'
+
+  - script: |
+      curl -fsSL \
+        https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
+        | sh
+    displayName: 'Install Databricks CLI'
+
+  # ── 2. Fetch credentials from Key Vault ───────────────────────────────────
+  # The service connection must have Get+List permissions on the Key Vault.
+  # Secret names use dashes (Key Vault convention); they are exposed as
+  # pipeline variables with dashes replaced by underscores by AzureKeyVault@2.
+  - task: AzureKeyVault@2
+    inputs:
+      azureSubscription: 'nrx-azure-service-connection'
+      KeyVaultName: {% raw %}${{ parameters.key_vault_name }}{% endraw %}
+
+      SecretsFilter: 'DATABRICKS-HOST,DATABRICKS-CLIENT-ID,DATABRICKS-CLIENT-SECRET'
+      RunAsPreJob: false
+    displayName: "Fetch Databricks credentials from {% raw %}${{ parameters.key_vault_name }}{% endraw %}"
+
+  # ── 3. Install dependencies ────────────────────────────────────────────────
+  - script: uv sync --frozen
+    displayName: 'Install Python dependencies'
+
+  # ── 4. Build wheel ─────────────────────────────────────────────────────────
+  - script: uv build
+    displayName: 'Build Python wheel'
+
+  # ── 5. Deploy bundle ───────────────────────────────────────────────────────
+  # --force-lock: breaks stale deployment locks from previous failed runs.
+  - script: |
+      databricks bundle deploy \
+        --target {% raw %}${{ parameters.bundle_target }}{% endraw %} \
+        --force-lock
+    displayName: "Deploy bundle to {% raw %}${{ parameters.bundle_target }}{% endraw %}"
+    env:
+      DATABRICKS_HOST: $(DATABRICKS-HOST)
+      DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
+      DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)
