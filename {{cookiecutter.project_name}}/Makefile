@@ -100,3 +100,57 @@ docs-test: ## Build documentation (strict — fail on warnings)
 docs: ## Build and serve documentation locally
 	@uv run mkdocs serve
 {%- endif %}
+{% if cookiecutter.databricks_asset_bundle == 'y' %}
+##@ Databricks Asset Bundle
+
+# Requires the Databricks CLI installed and configured:
+#   curl -fsSL https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh | sh
+# For local runs, set DATABRICKS_HOST + DATABRICKS_TOKEN (or service principal vars) in your shell.
+
+DAB_ROLE := {{cookiecutter.databricks_workspace_role}}
+
+.PHONY: bundle-validate
+bundle-validate: ## Validate the bundle against the dev_personal target (no deployment)
+	@echo "🔍 Validating DAB bundle..."
+	@databricks bundle validate --target dev_personal
+
+.PHONY: bundle-deploy-dev
+bundle-deploy-dev: build ## Build wheel and deploy bundle to DEV workspace
+	@echo "🚀 Deploying bundle to DEV (target: release_$(DAB_ROLE)_dev)..."
+	@databricks bundle deploy --target release_$(DAB_ROLE)_dev --force-lock
+
+.PHONY: bundle-deploy-test
+bundle-deploy-test: build ## Build wheel and deploy bundle to TEST workspace
+	@echo "🚀 Deploying bundle to TEST (target: release_$(DAB_ROLE)_test)..."
+	@databricks bundle deploy --target release_$(DAB_ROLE)_test --force-lock
+
+.PHONY: bundle-deploy-prod
+bundle-deploy-prod: build ## Build wheel and deploy bundle to PROD workspace
+	@echo "🚀 Deploying bundle to PROD (target: release_$(DAB_ROLE)_prod)..."
+	@databricks bundle deploy --target release_$(DAB_ROLE)_prod --force-lock
+
+.PHONY: bundle-destroy-dev
+bundle-destroy-dev: ## Destroy bundle resources in DEV (jobs, schedules, artifacts — NOT tables)
+	@echo "⚠️  Destroying bundle resources in DEV (target: release_$(DAB_ROLE)_dev)..."
+	@databricks bundle destroy --target release_$(DAB_ROLE)_dev --auto-approve
+
+.PHONY: bundle-run-bronze
+bundle-run-bronze: ## Trigger the bronze ingestion job in DEV immediately (bypasses schedule)
+	@echo "▶️  Running bronze ingestion job in DEV..."
+	@databricks bundle run --target release_$(DAB_ROLE)_dev bronze_ingestion
+
+.PHONY: bundle-run-silver
+bundle-run-silver: ## Trigger the silver transform job in DEV immediately
+	@echo "▶️  Running silver transform job in DEV..."
+	@databricks bundle run --target release_$(DAB_ROLE)_dev silver_transform
+
+.PHONY: bundle-run-gold
+bundle-run-gold: ## Trigger the gold aggregation job in DEV immediately
+	@echo "▶️  Running gold aggregation job in DEV..."
+	@databricks bundle run --target release_$(DAB_ROLE)_dev gold_aggregate
+
+.PHONY: bundle-run-dbt
+bundle-run-dbt: ## Trigger the dbt transformations job in DEV immediately
+	@echo "▶️  Running dbt transformations job in DEV..."
+	@databricks bundle run --target release_$(DAB_ROLE)_dev dbt_transformations
+{%- endif %}
