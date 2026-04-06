@@ -11,6 +11,8 @@ MINIMAL = {
     "codecov": "n",
     "dockerfile": "n",
     "devcontainer": "n",
+    "databricks_asset_bundle": "n",
+    "data_contracts": "n",
 }
 
 COMBINATIONS = [
@@ -25,20 +27,33 @@ COMBINATIONS = [
     pytest.param({"mkdocs": "y", "codecov": "n"}, id="mkdocs-no-codecov"),
     pytest.param({"codecov": "n", "cicd_github_actions": "n"}, id="no-codecov-no-actions"),
     pytest.param({"layout": "src", "type_checker": "ty", "publish_to_pypi": "n"}, id="src-ty-no-publish"),
+    # DAB-specific combinations
+    pytest.param({"databricks_asset_bundle": "n"}, id="no-dab"),
+    pytest.param({"databricks_asset_bundle": "y", "data_contracts": "n"}, id="dab-no-contracts"),
+    pytest.param({"databricks_asset_bundle": "y", "cicd_azure_pipelines": "n"}, id="dab-no-azdo"),
+    pytest.param({"databricks_asset_bundle": "y", "databricks_workspace_role": "ip"}, id="dab-role-ip"),
+    pytest.param({"databricks_asset_bundle": "y", "databricks_catalog_suffix": ""}, id="dab-no-catalog-suffix"),
 ]
 
-# Defaults from cookiecutter.json (first item in each list)
+# Reflects cookiecutter.json defaults (first item in each list / scalar value).
 DEFAULTS = {
     "layout": "flat",
-    "cicd_github_actions": "y",
+    "cicd_github_actions": "n",
     "cicd_azure_pipelines": "y",
-    "publish_to_pypi": "y",
+    "publish_to_pypi": "n",
     "deptry": "y",
     "mkdocs": "y",
     "codecov": "y",
-    "dockerfile": "y",
+    "dockerfile": "n",
     "devcontainer": "y",
-    "type_checker": "mypy",
+    "type_checker": "ty",
+    "databricks_asset_bundle": "y",
+    "databricks_catalog_prefix": "mdp",
+    "databricks_catalog_suffix": "bronze",
+    "databricks_schema_prefix": "crm_dyn365",
+    "databricks_workspace_role": "da",
+    "data_contracts": "y",
+    "open_source_license": "Not open source",
 }
 
 
@@ -56,7 +71,6 @@ class TestStructure:
             ".gitignore",
             ".pre-commit-config.yaml",
             "CONTRIBUTING.md",
-            "LICENSE",
             "Makefile",
             "README.md",
             "pyproject.toml",
@@ -66,6 +80,12 @@ class TestStructure:
         project = bake(**options)
         for rel_path in EXPECTED_FILES:
             assert (project.path / rel_path).exists(), f"Expected {rel_path} to exist"
+        # LICENSE only exists when an open-source license is selected.
+        effective = resolve_options(options)
+        if effective.get("open_source_license", "Not open source") != "Not open source":
+            assert project.has_file("LICENSE")
+        else:
+            assert not project.has_file("LICENSE")
 
     def test_conditional_files(self, bake, options):
         project = bake(**options)
@@ -103,14 +123,38 @@ class TestStructure:
         else:
             assert not project.has_dir(".azure")
 
+        # ── DAB conditional files ───────────────────────────────────────────
+        if effective["databricks_asset_bundle"] == "y":
+            assert project.has_file("databricks.yml"), "databricks.yml must exist when DAB=y"
+            assert project.has_dir("notebooks"), "notebooks/ must exist when DAB=y"
+            assert project.has_dir("resources"), "resources/ must exist when DAB=y"
+            assert project.has_dir("dbt"), "dbt/ must exist when DAB=y"
+            if effective["cicd_azure_pipelines"] == "y":
+                assert project.has_dir("azuredevops"), "azuredevops/ must exist when DAB=y and azure_pipelines=y"
+            else:
+                assert not project.has_dir("azuredevops")
+            if effective["data_contracts"] == "y":
+                assert project.has_dir("data-contracts"), "data-contracts/ must exist when data_contracts=y"
+            else:
+                assert not project.has_dir("data-contracts")
+        else:
+            assert not project.has_file("databricks.yml")
+            assert not project.has_dir("notebooks")
+            assert not project.has_dir("resources")
+            assert not project.has_dir("dbt")
+            assert not project.has_dir("azuredevops")
+            assert not project.has_dir("data-contracts")
+
     def test_layout(self, bake, options):
         effective = resolve_options(options)
         project = bake(**options)
+        # Project slug is derived from the default project_name "npb-analytics".
+        slug = "npb_analytics"
         if effective["layout"] == "src":
-            assert project.has_dir("src/example_project")
-            assert not project.has_dir("example_project")
+            assert project.has_dir(f"src/{slug}"), f"Expected src/{slug}/ for src layout"
+            assert not project.has_dir(slug)
         else:
-            assert project.has_dir("example_project")
+            assert project.has_dir(slug), f"Expected {slug}/ for flat layout"
             assert not project.has_dir("src")
 
     def test_release_workflow(self, bake, options):
@@ -130,6 +174,8 @@ class TestStructure:
         project = bake(**options)
         if effective["cicd_github_actions"] == "y":
             assert project.is_valid_yaml(".github/workflows/main.yml")
+        if effective["databricks_asset_bundle"] == "y":
+            assert project.is_valid_yaml("databricks.yml")
 
     def test_pyproject_type_checker(self, bake, options):
         effective = resolve_options(options)
@@ -156,6 +202,12 @@ class TestStructure:
             assert "docs:" in content
         else:
             assert "docs:" not in content
+
+        if effective["databricks_asset_bundle"] == "y":
+            assert "bundle-validate" in content
+            assert "bundle-deploy-dev" in content
+        else:
+            assert "bundle-validate" not in content
 
     def test_codecov_workflow(self, bake, options):
         effective = resolve_options(options)

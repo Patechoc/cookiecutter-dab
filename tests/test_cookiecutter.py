@@ -8,20 +8,20 @@ def test_bake_project(bake):
 
 
 def test_cicd_contains_pypi_secrets(bake):
-    project = bake(publish_to_pypi="y")
+    project = bake(cicd_github_actions="y", publish_to_pypi="y")
     assert project.is_valid_yaml(".github/workflows/on-release-main.yml")
     assert project.file_contains(".github/workflows/on-release-main.yml", "PYPI_TOKEN")
     assert project.file_contains("Makefile", "build-and-publish")
 
 
 def test_dont_publish(bake):
-    project = bake(publish_to_pypi="n")
+    project = bake(cicd_github_actions="y", publish_to_pypi="n", mkdocs="y")
     assert project.is_valid_yaml(".github/workflows/on-release-main.yml")
     assert not project.file_contains(".github/workflows/on-release-main.yml", "make build-and-publish")
 
 
 def test_mkdocs(bake):
-    project = bake(mkdocs="y")
+    project = bake(cicd_github_actions="y", mkdocs="y")
     assert project.is_valid_yaml(".github/workflows/on-release-main.yml")
     assert project.file_contains(".github/workflows/on-release-main.yml", "mkdocs gh-deploy")
     assert project.file_contains("Makefile", "docs:")
@@ -29,7 +29,7 @@ def test_mkdocs(bake):
 
 
 def test_not_mkdocs(bake):
-    project = bake(mkdocs="n")
+    project = bake(cicd_github_actions="y", mkdocs="n", publish_to_pypi="y")
     assert project.is_valid_yaml(".github/workflows/on-release-main.yml")
     assert not project.file_contains(".github/workflows/on-release-main.yml", "mkdocs gh-deploy")
     assert not project.file_contains("Makefile", "docs:")

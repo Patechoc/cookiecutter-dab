@@ -93,6 +93,9 @@ def bake(cookies):
     """
 
     def _bake(**options) -> BakedProject:
+        # _expect_failure=True: caller expects a non-zero exit code (hook validation tests).
+        # Strip it before passing to cookies.bake() which doesn't know about it.
+        expect_failure = options.pop("_expect_failure", False)
         result = cookies.bake(extra_context=options)
         project = BakedProject(
             project_path=result.project_path,
@@ -100,8 +103,9 @@ def bake(cookies):
             exception=result.exception,
             options=options,
         )
-        assert project.exit_code == 0, f"Bake failed with options {options}: {project.exception}"
-        assert project.exception is None
+        if not expect_failure:
+            assert project.exit_code == 0, f"Bake failed with options {options}: {project.exception}"
+            assert project.exception is None
         return project
 
     return _bake

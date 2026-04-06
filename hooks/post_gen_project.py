@@ -30,7 +30,12 @@ if __name__ == "__main__":
     if "{{cookiecutter.cicd_azure_pipelines}}" != "y":
         remove_dir(".azure")
     else:
-        if "{{cookiecutter.mkdocs}}" != "y" and "{{cookiecutter.publish_to_pypi}}" == "n":
+        # Only remove the release workflow if .github exists (cicd_github_actions=y).
+        if (
+            "{{cookiecutter.cicd_github_actions}}" == "y"
+            and "{{cookiecutter.mkdocs}}" != "y"
+            and "{{cookiecutter.publish_to_pypi}}" == "n"
+        ):
             remove_file(".github/workflows/on-release-main.yml")
 
     if "{{cookiecutter.mkdocs}}" != "y":
