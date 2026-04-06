@@ -1,57 +1,230 @@
-<p align="center">
-  <img width="600" src="https://raw.githubusercontent.com/osprey-oss/cookiecutter-uv/main/docs/static/cookiecutter.svg">
-</p style = "margin-bottom: 2rem;">
+# cookiecutter-dab
+
+A [cookiecutter](https://github.com/cookiecutter/cookiecutter) template for creating
+**Databricks Asset Bundle (DAB)** Python projects at NRX / Norwegian Red Cross.
+
+Generates a production-ready repository with a medallion pipeline (Bronze → Silver → Gold),
+dbt models, Azure DevOps CI/CD pipelines, data contracts, and a full test suite — all
+wired together with `databricks.yml` and ready to deploy in minutes.
 
 ---
 
-[![Build status](https://img.shields.io/github/actions/workflow/status/osprey-oss/cookiecutter-uv/main.yml?branch=main)](https://github.com/osprey-oss/cookiecutter-uv/actions/workflows/main.yml?query=branch%3Amain)
-[![Supported Python versions](https://img.shields.io/badge/python-_3.10_%7C_3.11_%7C_3.12_%7C_3.13_%7C_3.14-blue?labelColor=grey&color=blue)](https://github.com/osprey-oss/cookiecutter-uv/blob/main/pyproject.toml)
-[![Docs](https://img.shields.io/badge/docs-gh--pages-blue)](https://fpgmaas.github.io/cookiecutter-uv/)
-[![License](https://img.shields.io/github/license/osprey-oss/cookiecutter-uv)](https://img.shields.io/github/license/osprey-oss/cookiecutter-uv)
+## What gets generated
 
-This is a modern Cookiecutter template that can be used to initiate a Python project with all the necessary tools for development, testing, and deployment. It supports the following features:
-
-- [uv](https://docs.astral.sh/uv/) for dependency management
-- Supports both [src and flat layout](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/).
-- CI/CD with [GitHub Actions](https://github.com/features/actions) of [Azure DevOps](https://azure.microsoft.com/en-us/products/devops/pipelines)
-- Pre-commit hooks with [pre-commit](https://pre-commit.com/)
-- Code quality with [ruff](https://github.com/charliermarsh/ruff), [mypy](https://mypy.readthedocs.io/en/stable/)/[ty](https://docs.astral.sh/ty/) and [deptry](https://github.com/fpgmaas/deptry/).
-- Publishing to [PyPI](https://pypi.org) by creating a new release on GitHub
-- Testing and coverage with [pytest](https://docs.pytest.org/en/7.1.x/) and [codecov](https://about.codecov.io/)
-- Documentation with [MkDocs](https://www.mkdocs.org/)
-- Compatibility testing for multiple versions of Python with [tox-uv](https://github.com/tox-dev/tox-uv)
-- Containerization with [Docker](https://www.docker.com/) or [Podman](https://podman.io/)
-- Development environment with [VSCode devcontainers](https://code.visualstudio.com/docs/devcontainers/containers)
-
----
-
-<p align="center">
-  <a href="https://fpgmaas.github.io/cookiecutter-uv/">Documentation</a> - <a href="https://github.com/osprey-oss/cookiecutter-uv-example">Example</a>
-</p>
+```text
+<project-name>/
+├── databricks.yml              # Bundle definition: targets, variables, job cluster
+├── <project_slug>/
+│   ├── bronze/ingest.py        # Raw ingestion (demo: samples.nyctaxi.trips)
+│   ├── silver/transform.py     # Cleansing and conforming
+│   ├── gold/aggregate.py       # Business-level aggregations
+│   └── utils/catalog.py        # Unity Catalog naming helpers
+├── notebooks/                  # Thin wrappers calling the Python package
+├── dbt/
+│   ├── models/silver/          # dbt SQL models (alternative to Python silver/gold)
+│   ├── models/gold/
+│   ├── profiles.yml            # Safe to commit — uses env_var() for secrets
+│   └── .env.example            # Copy to .env, fill in credentials, never commit
+├── resources/jobs/
+│   ├── bronze_ingestion.yml    # Daily notebook job
+│   ├── silver_transform.yml
+│   ├── gold_aggregate.yml
+│   ├── dbt_transformations.yml # Native dbt_task with serverless environment
+│   └── unit_tests.yml          # CI unit test job (always paused)
+├── azuredevops/
+│   ├── ci.yml                  # PR: lint + pytest + bundle validate
+│   ├── cd_deploy.yml           # Merge: DEV → TEST → PROD (manual gate on PROD)
+│   ├── cd_destroy.yml          # Manual: destroy resources in one environment
+│   └── templates/              # Reusable deploy/destroy steps
+├── data-contracts/             # YAML contracts: schema, quality rules, SLA
+├── tests/
+│   ├── conftest.py             # Local SparkSession fixture (no cluster needed)
+│   ├── test_catalog.py         # Pure Python catalog naming tests
+│   ├── bronze/test_ingest.py   # Mocked I/O tests
+│   └── silver/test_transform.py # Real Spark DataFrame transform tests
+├── pyproject.toml              # databricks-sdk runtime + pyspark/pytest-mock dev
+└── Makefile                    # bundle-validate / bundle-deploy-* / bundle-run-*
+```
 
 ---
 
 ## Quickstart
 
-On your local machine, navigate to the directory in which you want to
-create a project directory, and run the following command:
+The repository is hosted in Azure DevOps and requires authentication.
+Before running the template, [create a Personal Access Token (PAT)](https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate), [here
+in Azure DevOps](https://dev.azure.com/RedCrossNorway/_usersSettings/tokens) with **Code (Read)** scope, then store it as an environment variable:
 
 ```bash
-uvx cookiecutter https://github.com/patechoc/cookiecutter-uv.git
+# Add to your ~/.bashrc or ~/.zshrc
+export ADO_TOKEN=<your-PAT>
 ```
 
-or if you don't have `uv` installed yet:
+Then run the template:
 
 ```bash
-pip install cookiecutter
-cookiecutter https://github.com/patechoc/cookiecutter-uv.git
+uvx cookiecutter "https://RedCrossNorway:${ADO_TOKEN}@dev.azure.com/RedCrossNorway/Data%20Warehouse/_git/cookiecutter-dab"
 ```
 
-Follow the prompts to configure your project. Once completed, a new directory containing your project will be created. Then navigate into your newly created project directory and follow the instructions in the `README.md` to complete the setup of your project.
+Or from a local clone:
+
+```bash
+uvx cookiecutter /path/to/cookiecutter-dab
+```
+
+Follow the prompts. Once generation completes:
+
+```bash
+cd <project-name>
+make install          # uv sync + pre-commit hooks
+make bundle-validate  # confirm the bundle parses cleanly
+make bundle-deploy-dev
+```
+
+---
+
+## Variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `author` | `Firstname Lastname` | Your full name |
+| `email` | `foo.bar@redcross.no` | Your email address |
+| `author_github_handle` | `foobar` | GitHub username (used for doc links) |
+| `project_name` | `npb-analytics` | Kebab-case repo name, e.g. `npb-analytics`, `ipb-pims` |
+| `project_slug` | *(auto)* | Python package name — dashes replaced by underscores |
+| `project_description` | *(auto)* | One-line description pre-filled from project_name |
+| `layout` | `flat` | `flat` (package at root) or `src` (under `src/`) |
+| `cicd_github_actions` | `n` | Add `.github/workflows/` |
+| `cicd_azure_pipelines` | `y` | Add `azuredevops/` DAB CI/CD pipelines |
+| `publish_to_pypi` | `n` | Add PyPI publish step |
+| `deptry` | `y` | Unused/missing dependency checker |
+| `mkdocs` | `y` | MkDocs documentation site |
+| `codecov` | `y` | Codecov coverage reporting |
+| `dockerfile` | `n` | Add a Dockerfile |
+| `devcontainer` | `y` | VS Code Dev Container |
+| `type_checker` | `ty` | `ty` (Astral, fast) or `mypy` (classic) |
+| `open_source_license` | `Not open source` | License file; choose "Not open source" for internal projects |
+| `databricks_asset_bundle` | `y` | Add DAB support — all Databricks files, pipelines, tests |
+| `databricks_catalog_prefix` | `mdp` | Unity Catalog prefix, e.g. `mdp`, `nrx` |
+| `databricks_catalog_suffix` | `bronze` | Layer suffix for per-layer catalogs (`mdp_dev_bronze`). Leave empty for per-environment catalogs (`mdp_dev`). |
+| `databricks_schema_prefix` | `crm_dyn365` | Schema prefix for this project, e.g. `npb_volunteering`, `ipb_pims` |
+| `databricks_workspace_role` | `da` | `da` (Data Applications) or `ip` (Ingestion Process) — used in target names like `release_da_dev` |
+| `databricks_default_spark_version` | `13.3.x-scala2.12` | Databricks Runtime version for job clusters |
+| `data_contracts` | `y` | Add `data-contracts/` YAML schema and quality contracts |
+
+### Catalog naming
+
+| `catalog_suffix` | Naming pattern | Example (dev) |
+| --- | --- | --- |
+| `bronze` (current default) | `{prefix}_{env}_{suffix}` | `mdp_dev_bronze` |
+| *(empty)* | `{prefix}_{env}` | `mdp_dev` |
+
+The per-layer suffix (`mdp_dev_bronze`) is a transitional pattern matching today's
+infrastructure. Set `catalog_suffix=""` when catalogs are renamed to the per-environment
+pattern (`mdp_dev`). The migration path is documented in `utils/catalog.py`.
+
+---
+
+## Architecture
+
+Two transformation paths are included side-by-side so you can choose per entity:
+
+```text
+Source System
+     │
+     ▼  (bronze_ingestion job — notebook task + cluster)
+ Bronze Delta table
+     │
+     ├──▶  (silver_transform job — notebook task)  ──▶  Silver Delta table
+     │                                                        │
+     │                                                        ▼  (gold_aggregate job)
+     │                                                   Gold Delta table
+     │
+     └──▶  (dbt_transformations job — dbt_task + serverless warehouse)
+               silver model  ──▶  gold model
+```
+
+| Path | Tool | When to use |
+| --- | --- | --- |
+| Python modules + notebooks | PySpark | Ingestion, Python-heavy logic, ML features |
+| dbt SQL models | `dbt_task` (serverless) | Pure SQL transforms, lineage tracking, dbt tests |
+
+See `notebooks/README.md` for the full comparison and decision guide.
+
+---
+
+## CI/CD
+
+```text
+Pull Request  ──▶  azuredevops/ci.yml
+                     ├── Lint + pytest (local Spark, no cluster)
+                     └── databricks bundle validate
+
+Merge to main ──▶  azuredevops/cd_deploy.yml
+                     ├── DEV  (automatic)
+                     ├── TEST (automatic, depends on DEV)
+                     └── PROD (manual approval gate)
+
+Manual trigger ──▶  azuredevops/cd_destroy.yml
+                     └── Destroy resources in chosen environment
+```
+
+### One-time ADO setup (per project)
+
+1. **Service connection** — `nrx-azure-service-connection` with Key Vault access.
+2. **ADO Environments** — create `databricks-dev`, `databricks-test`, `databricks-prod`.
+   Add an approval check on `databricks-prod`.
+3. **Key Vault secrets** per environment: `DATABRICKS-HOST`, `DATABRICKS-CLIENT-ID`, `DATABRICKS-CLIENT-SECRET`.
+
+---
+
+## Makefile reference
+
+```bash
+make install              # uv sync + pre-commit hooks
+make check                # ruff + type checker + deptry
+make test                 # pytest (local Spark, no cluster needed)
+
+make bundle-validate      # validate bundle structure (no deployment)
+make bundle-deploy-dev    # build wheel + deploy to DEV
+make bundle-deploy-test   # build wheel + deploy to TEST
+make bundle-deploy-prod   # build wheel + deploy to PROD
+make bundle-destroy-dev   # destroy DEV resources (tables are NOT affected)
+
+make bundle-run-bronze    # trigger bronze ingestion job in DEV immediately
+make bundle-run-silver    # trigger silver transform job in DEV immediately
+make bundle-run-gold      # trigger gold aggregation job in DEV immediately
+make bundle-run-dbt       # trigger dbt transformations job in DEV immediately
+```
+
+---
+
+## dbt credentials
+
+`dbt/profiles.yml` is version-controlled because it only contains `env_var()` references.
+Actual secrets live in `.env` (gitignored).
+
+```bash
+cp dbt/.env.example dbt/.env
+# Fill in DBT_DATABRICKS_HOST_DEV, DBT_DATABRICKS_HTTP_PATH_DEV, DBT_DATABRICKS_TOKEN_DEV
+source dbt/.env
+dbt run --profiles-dir dbt --target dev
+```
+
+---
+
+## Template development
+
+```bash
+# Run the template test suite (fast — no cluster, no installs)
+uv run pytest tests/ -m "not slow"
+
+# Run all tests including install + test runs of generated projects (slow)
+uv run pytest tests/ --slow
+```
+
+---
 
 ## Acknowledgements
 
-This project is clone from [Florian Maas\'s cookiecutter-uv](https://github.com/osprey-oss/cookiecutter-uv.git) project, which is itself partially based on [Audrey
-Feldroy\'s](https://github.com/audreyfeldroy)\'s great
-[cookiecutter-pypackage](https://github.com/audreyfeldroy/cookiecutter-pypackage)
-repository.
+Based on [osprey-oss/cookiecutter-uv](https://github.com/osprey-oss/cookiecutter-uv),
+extended with Databricks Asset Bundle support for the NRX Data Platform.
