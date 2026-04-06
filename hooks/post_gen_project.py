@@ -117,6 +117,15 @@ if __name__ == "__main__":
             if os.path.isdir(dir_path):
                 shutil.rmtree(dir_path)
 
+        # Remove DAB-specific test files and subdirectories.
+        tests_root = os.path.join(PROJECT_DIRECTORY, "tests")
+        for dab_test in ["bronze", "silver", "conftest.py", "test_catalog.py"]:
+            dab_test_path = os.path.join(tests_root, dab_test)
+            if os.path.isfile(dab_test_path):
+                os.remove(dab_test_path)
+            elif os.path.isdir(dab_test_path):
+                shutil.rmtree(dab_test_path)
+
     else:
         # DAB is enabled — apply sub-option cleanup.
         if "{{cookiecutter.cicd_azure_pipelines}}" != "y":
