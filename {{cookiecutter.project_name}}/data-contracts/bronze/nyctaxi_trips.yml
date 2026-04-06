@@ -1,0 +1,115 @@
+# Data contract — Bronze layer: nyctaxi_trips
+#
+# This file documents the raw ingestion table for NYC taxi trip data.
+# Bronze tables store records as received from the source with no transformations.
+# Schema evolution is allowed (mergeSchema=true) — new source columns appear here.
+#
+# Full table path:
+#   {%- if cookiecutter.databricks_catalog_suffix %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>_{{cookiecutter.databricks_catalog_suffix}}.{{cookiecutter.databricks_schema_prefix}}_bronze.nyctaxi_trips
+#   {%- else %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>.{{cookiecutter.databricks_schema_prefix}}_bronze.nyctaxi_trips
+#   {%- endif %}
+
+apiVersion: "datacontract/v1"
+kind: DataContract
+
+metadata:
+  name: "nyctaxi_trips_bronze"
+  version: "1.0.0"
+  status: "active"              # draft | active | deprecated
+  layer: "bronze"
+  domain: "{{cookiecutter.databricks_schema_prefix}}"
+  owner: "{{cookiecutter.author}}"
+  contact: "{{cookiecutter.email}}"
+  description: >
+    Raw NYC taxi trip records ingested from the Databricks sample dataset
+    (samples.nyctaxi.trips). One row per trip, appended on each job run.
+    Adapt read_source() in the bronze module to point to your actual source.
+
+servers:
+  dev:
+    catalog_prefix: "{{cookiecutter.databricks_catalog_prefix}}"
+    catalog_suffix: "{{cookiecutter.databricks_catalog_suffix}}"
+    schema: "{{cookiecutter.databricks_schema_prefix}}_bronze"
+    table: "nyctaxi_trips"
+    write_mode: "append"
+    format: "delta"
+
+schema:
+  - name: "tpep_pickup_datetime"
+    type: "timestamp"
+    nullable: true          # bronze: raw source may have nulls
+    description: "Date and time when the taxi meter was engaged."
+
+  - name: "tpep_dropoff_datetime"
+    type: "timestamp"
+    nullable: true
+    description: "Date and time when the taxi meter was disengaged."
+
+  - name: "passenger_count"
+    type: "integer"
+    nullable: true
+    description: "Number of passengers in the vehicle (driver-entered)."
+
+  - name: "trip_distance"
+    type: "double"
+    nullable: true
+    description: "Elapsed trip distance in miles reported by the taximeter."
+
+  - name: "fare_amount"
+    type: "double"
+    nullable: true
+    description: "Time-and-distance fare calculated by the meter (USD)."
+
+  - name: "extra"
+    type: "double"
+    nullable: true
+    description: "Miscellaneous extras and surcharges."
+
+  - name: "mta_tax"
+    type: "double"
+    nullable: true
+    description: "MTA tax triggered based on the metered rate in use."
+
+  - name: "tip_amount"
+    type: "double"
+    nullable: true
+    description: "Tip amount. Automatically populated for credit card tips."
+
+  - name: "tolls_amount"
+    type: "double"
+    nullable: true
+    description: "Total amount of all tolls paid during the trip."
+
+  - name: "total_amount"
+    type: "double"
+    nullable: true
+    description: "Total amount charged to passengers (excluding cash tips)."
+
+  - name: "payment_type"
+    type: "integer"
+    nullable: true
+    description: "Numeric code for how the passenger paid: 1=Credit card, 2=Cash, 3=No charge, 4=Dispute."
+
+quality:
+  # Bronze quality rules are intentionally lenient — raw data is accepted as-is.
+  # Strict validation belongs in the silver layer.
+  - rule: "table_not_empty"
+    description: "Bronze table must have at least one row after ingestion."
+    severity: "critical"
+
+  - rule: "no_future_pickup_dates"
+    column: "tpep_pickup_datetime"
+    description: "Pickup timestamps must not be in the future."
+    severity: "warning"
+
+sla:
+  freshness_hours: 25       # Updated daily; allow 1-hour buffer over 24h.
+  availability_percent: 99
+
+tags:
+  - "nyctaxi"
+  - "bronze"
+  - "demo"
+  - "{{cookiecutter.databricks_schema_prefix}}"

@@ -1,0 +1,118 @@
+# Data contract — Gold layer: daily_trip_summary
+#
+# Daily aggregation of NYC taxi trips.
+# One row per calendar day. This is the consumer-facing table used by
+# dashboards, reports, and downstream analytical models.
+# Mode is overwrite — gold is always a full recomputation from silver.
+#
+# Full table path:
+#   {%- if cookiecutter.databricks_catalog_suffix %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>_{{cookiecutter.databricks_catalog_suffix}}.{{cookiecutter.databricks_schema_prefix}}_gold.daily_trip_summary
+#   {%- else %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>.{{cookiecutter.databricks_schema_prefix}}_gold.daily_trip_summary
+#   {%- endif %}
+
+apiVersion: "datacontract/v1"
+kind: DataContract
+
+metadata:
+  name: "daily_trip_summary_gold"
+  version: "1.0.0"
+  status: "active"
+  layer: "gold"
+  domain: "{{cookiecutter.databricks_schema_prefix}}"
+  owner: "{{cookiecutter.author}}"
+  contact: "{{cookiecutter.email}}"
+  description: >
+    Daily summary of NYC taxi trip metrics. One row per pickup date.
+    Produced by aggregating cleansed silver trip records.
+    Suitable for dashboards and operational reports.
+
+servers:
+  dev:
+    catalog_prefix: "{{cookiecutter.databricks_catalog_prefix}}"
+    catalog_suffix: "{{cookiecutter.databricks_catalog_suffix}}"
+    schema: "{{cookiecutter.databricks_schema_prefix}}_gold"
+    table: "daily_trip_summary"
+    write_mode: "overwrite"
+    format: "delta"
+
+schema:
+  - name: "pickup_date"
+    type: "date"
+    nullable: false
+    primary_key: true
+    description: "Calendar date of the trip pickup (derived from tpep_pickup_datetime)."
+
+  - name: "total_trips"
+    type: "long"
+    nullable: false
+    description: "Total number of completed trips on this date."
+
+  - name: "avg_fare_usd"
+    type: "double"
+    nullable: false
+    description: "Average fare amount in USD across all trips on this date, rounded to 2 dp."
+
+  - name: "avg_trip_distance_miles"
+    type: "double"
+    nullable: false
+    description: "Average trip distance in miles, rounded to 2 dp."
+
+  - name: "avg_duration_minutes"
+    type: "double"
+    nullable: false
+    description: "Average trip duration in minutes, rounded to 2 dp."
+
+  - name: "total_passengers"
+    type: "long"
+    nullable: false
+    description: "Total passengers carried across all trips on this date."
+
+quality:
+  - rule: "not_null"
+    columns:
+      - "pickup_date"
+      - "total_trips"
+      - "avg_fare_usd"
+      - "avg_trip_distance_miles"
+      - "avg_duration_minutes"
+      - "total_passengers"
+    severity: "critical"
+
+  - rule: "unique"
+    column: "pickup_date"
+    severity: "critical"
+    description: "Exactly one summary row per calendar day."
+
+  - rule: "value_above"
+    column: "total_trips"
+    min: 0
+    severity: "critical"
+
+  - rule: "value_above"
+    column: "avg_fare_usd"
+    min: 0
+    severity: "warning"
+
+  - rule: "value_between"
+    column: "avg_duration_minutes"
+    min: 0
+    max: 300              # Trips over 5 hours are suspicious; flag for review.
+    severity: "warning"
+
+  - rule: "row_count_above"
+    min: 1
+    severity: "critical"
+    description: "Gold table must have at least one daily summary row."
+
+sla:
+  freshness_hours: 27       # Silver at 04:00 + 1h gold job = 05:00; allow 2h buffer.
+  availability_percent: 99
+
+tags:
+  - "nyctaxi"
+  - "gold"
+  - "demo"
+  - "dashboard"
+  - "{{cookiecutter.databricks_schema_prefix}}"

@@ -1,0 +1,141 @@
+# Data contract — Silver layer: nyctaxi_trips
+#
+# Cleansed and conformed NYC taxi trip records.
+# Silver applies strict quality rules: nulls on key columns are dropped,
+# passenger count is validated (1–6), and trip duration is derived.
+# Mode is overwrite — silver is always a full refresh of clean data from bronze.
+#
+# Full table path:
+#   {%- if cookiecutter.databricks_catalog_suffix %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>_{{cookiecutter.databricks_catalog_suffix}}.{{cookiecutter.databricks_schema_prefix}}_silver.nyctaxi_trips
+#   {%- else %}
+#   {{cookiecutter.databricks_catalog_prefix}}_<env>.{{cookiecutter.databricks_schema_prefix}}_silver.nyctaxi_trips
+#   {%- endif %}
+
+apiVersion: "datacontract/v1"
+kind: DataContract
+
+metadata:
+  name: "nyctaxi_trips_silver"
+  version: "1.0.0"
+  status: "active"
+  layer: "silver"
+  domain: "{{cookiecutter.databricks_schema_prefix}}"
+  owner: "{{cookiecutter.author}}"
+  contact: "{{cookiecutter.email}}"
+  description: >
+    Cleansed NYC taxi trip records. Rows with null fare/distance/timestamps are
+    removed, passenger count is restricted to 1–6, and trip_duration_minutes is
+    added. Downstream dbt models and gold aggregations read from this table.
+
+servers:
+  dev:
+    catalog_prefix: "{{cookiecutter.databricks_catalog_prefix}}"
+    catalog_suffix: "{{cookiecutter.databricks_catalog_suffix}}"
+    schema: "{{cookiecutter.databricks_schema_prefix}}_silver"
+    table: "nyctaxi_trips"
+    write_mode: "overwrite"
+    format: "delta"
+
+schema:
+  - name: "tpep_pickup_datetime"
+    type: "timestamp"
+    nullable: false           # Enforced: nulls dropped in transform()
+    description: "Pickup timestamp — guaranteed non-null in silver."
+
+  - name: "tpep_dropoff_datetime"
+    type: "timestamp"
+    nullable: false
+    description: "Dropoff timestamp — guaranteed non-null in silver."
+
+  - name: "trip_duration_minutes"
+    type: "double"
+    nullable: false
+    description: "Derived: (dropoff - pickup) in minutes, rounded to 2 dp. Always > 0."
+
+  - name: "passenger_count"
+    type: "integer"
+    nullable: false
+    description: "Number of passengers. Validated range: 1–6 inclusive."
+
+  - name: "trip_distance"
+    type: "double"
+    nullable: false
+    description: "Trip distance in miles — guaranteed non-null in silver."
+
+  - name: "fare_amount"
+    type: "double"
+    nullable: false
+    description: "Meter fare in USD — guaranteed non-null in silver."
+
+  - name: "extra"
+    type: "double"
+    nullable: true
+    description: "Miscellaneous surcharges (passed through from bronze)."
+
+  - name: "mta_tax"
+    type: "double"
+    nullable: true
+    description: "MTA tax (passed through from bronze)."
+
+  - name: "tip_amount"
+    type: "double"
+    nullable: true
+    description: "Tip amount (passed through from bronze)."
+
+  - name: "tolls_amount"
+    type: "double"
+    nullable: true
+    description: "Tolls paid during the trip (passed through from bronze)."
+
+  - name: "total_amount"
+    type: "double"
+    nullable: true
+    description: "Total amount charged (passed through from bronze)."
+
+  - name: "payment_type"
+    type: "integer"
+    nullable: true
+    description: "Payment method code (passed through from bronze)."
+
+quality:
+  - rule: "not_null"
+    columns:
+      - "tpep_pickup_datetime"
+      - "tpep_dropoff_datetime"
+      - "fare_amount"
+      - "trip_distance"
+      - "trip_duration_minutes"
+    severity: "critical"
+
+  - rule: "value_between"
+    column: "passenger_count"
+    min: 1
+    max: 6
+    severity: "critical"
+
+  - rule: "value_above"
+    column: "trip_duration_minutes"
+    min: 0
+    severity: "critical"
+    description: "All trips must have a positive duration."
+
+  - rule: "value_above_or_equal"
+    column: "fare_amount"
+    min: 0
+    severity: "warning"
+    description: "Fare amounts should be non-negative."
+
+  - rule: "no_duplicates"
+    description: "Silver table is deduplicated on the full row."
+    severity: "critical"
+
+sla:
+  freshness_hours: 26       # Bronze at 03:00 + 1h silver job = 04:00; allow 2h buffer.
+  availability_percent: 99
+
+tags:
+  - "nyctaxi"
+  - "silver"
+  - "demo"
+  - "{{cookiecutter.databricks_schema_prefix}}"
