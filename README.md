@@ -107,8 +107,21 @@ make bundle-deploy-dev
 | `databricks_catalog_prefix` | `mdp` | Unity Catalog prefix, e.g. `mdp`, `nrx` |
 | `databricks_catalog_suffix` | `bronze` | Layer suffix for per-layer catalogs (`mdp_dev_bronze`). Leave empty for per-environment catalogs (`mdp_dev`). |
 | `databricks_schema_prefix` | `crm_dyn365` | Schema prefix for this project, e.g. `npb_volunteering`, `ipb_pims` |
-| `databricks_workspace_role` | `da` | `da` (Data Applications) or `ip` (Ingestion Process) — used in target names like `release_da_dev` |
+| `databricks_workspace_role` | `in` | Suffix in DAB target names. `in` → `release_in_dev` (generic), `ip` → Ingestion Process, `da` → Data Applications |
 | `databricks_default_spark_version` | `13.3.x-scala2.12` | Databricks Runtime version for job clusters |
+| `databricks_workspace_host_dev` | *(NRX IP DEV URL)* | Databricks workspace URL for DEV — safe to commit |
+| `databricks_workspace_host_test` | *(NRX IP TEST URL)* | Databricks workspace URL for TEST |
+| `databricks_workspace_host_prod` | *(NRX IP PROD URL)* | Databricks workspace URL for PROD |
+| `ado_service_connection_prefix` | `SC` | ADO service connection prefix — generates `SC-dev`, `SC-test`, `SC-prod` |
+| `ado_keyvault_name_dev` | `kv-nrx-dev-dlz-di-euw` | Azure Key Vault for DEV credentials |
+| `ado_keyvault_name_test` | `kv-nrx-test-dlz-di-euw` | Azure Key Vault for TEST credentials |
+| `ado_keyvault_name_prod` | `kv-nrx-prod-dlz-di-euw` | Azure Key Vault for PROD credentials |
+| `ado_agent_pool_dev` | `MDP-MPDAAS-SELFHOSTED-DEV` | Azure Pipelines self-hosted agent pool for DEV |
+| `ado_agent_pool_test` | `MDP-MPDAAS-SELFHOSTED-TEST` | Azure Pipelines self-hosted agent pool for TEST |
+| `ado_agent_pool_prod` | `MDP-MPDAAS-SELFHOSTED-PROD` | Azure Pipelines self-hosted agent pool for PROD |
+| `ado_environment_dev` | `dev` | ADO Environment name for DEV |
+| `ado_environment_test` | `test` | ADO Environment name for TEST |
+| `ado_environment_prod` | `prod` | ADO Environment name for PROD (add approval check here) |
 | `data_contracts` | `y` | Add `data-contracts/` YAML schema and quality contracts |
 
 ### Catalog naming
@@ -170,10 +183,14 @@ Manual trigger ──▶  azuredevops/cd_destroy.yml
 
 ### One-time ADO setup (per project)
 
-1. **Service connection** — `nrx-azure-service-connection` with Key Vault access.
-2. **ADO Environments** — create `databricks-dev`, `databricks-test`, `databricks-prod`.
-   Add an approval check on `databricks-prod`.
-3. **Key Vault secrets** per environment: `DATABRICKS-HOST`, `DATABRICKS-CLIENT-ID`, `DATABRICKS-CLIENT-SECRET`.
+These already exist in the NRX MDPaaS project — no new infrastructure required:
+
+1. **Service connections** — `SC-dev`, `SC-test`, `SC-prod` (one per environment).
+2. **ADO Environments** — `dev`, `test`, `prod`.
+   The `prod` environment has an approval check already configured.
+3. **Key Vault secrets** per environment (`databricks-sp-client-id`, `databricks-sp-secret`).
+   Key Vaults: `kv-nrx-dev-dlz-di-euw` / `kv-nrx-test-dlz-di-euw` / `kv-nrx-prod-dlz-di-euw`.
+4. **Agent pools** — `MDP-MPDAAS-SELFHOSTED-DEV` / `-TEST` / `-PROD`.
 
 ---
 

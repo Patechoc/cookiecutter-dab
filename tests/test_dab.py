@@ -109,6 +109,13 @@ class TestCatalogNaming:
 # ── Workspace role ─────────────────────────────────────────────────────────────
 
 class TestWorkspaceRole:
+    def test_default_role_in_in_makefile(self, bake):
+        """Default role 'in' produces release_in_dev targets."""
+        project = bake(databricks_asset_bundle="y", databricks_workspace_role="in")
+        content = project.read_file("Makefile")
+        assert "DAB_ROLE := in" in content
+        assert "release_$(DAB_ROLE)_dev" in content
+
     def test_role_da_in_makefile(self, bake):
         project = bake(databricks_asset_bundle="y", databricks_workspace_role="da")
         content = project.read_file("Makefile")
@@ -176,6 +183,93 @@ class TestAzureDevOps:
     def test_dab_deploy_template_is_valid_yaml(self, bake):
         project = bake(databricks_asset_bundle="y", cicd_azure_pipelines="y")
         assert project.is_valid_yaml("azuredevops/templates/dab_deploy.yml")
+
+    def test_service_connection_prefix_in_deploy_template(self, bake):
+        project = bake(
+            databricks_asset_bundle="y",
+            cicd_azure_pipelines="y",
+            ado_service_connection_prefix="MY-SC",
+        )
+        content = project.read_file("azuredevops/templates/dab_deploy.yml")
+        assert "MY-SC-" in content
+
+    def test_keyvault_names_in_cd_deploy(self, bake):
+        project = bake(
+            databricks_asset_bundle="y",
+            cicd_azure_pipelines="y",
+            ado_keyvault_name_dev="kv-myorg-dev",
+            ado_keyvault_name_test="kv-myorg-test",
+            ado_keyvault_name_prod="kv-myorg-prod",
+        )
+        content = project.read_file("azuredevops/cd_deploy.yml")
+        assert "kv-myorg-dev" in content
+        assert "kv-myorg-test" in content
+        assert "kv-myorg-prod" in content
+
+    def test_agent_pools_in_cd_deploy(self, bake):
+        project = bake(
+            databricks_asset_bundle="y",
+            cicd_azure_pipelines="y",
+            ado_agent_pool_dev="MY-POOL-DEV",
+            ado_agent_pool_test="MY-POOL-TEST",
+            ado_agent_pool_prod="MY-POOL-PROD",
+        )
+        content = project.read_file("azuredevops/cd_deploy.yml")
+        assert "MY-POOL-DEV" in content
+        assert "MY-POOL-TEST" in content
+        assert "MY-POOL-PROD" in content
+
+    def test_ado_environment_names_in_cd_deploy(self, bake):
+        project = bake(
+            databricks_asset_bundle="y",
+            cicd_azure_pipelines="y",
+            ado_environment_dev="my-dev",
+            ado_environment_test="my-test",
+            ado_environment_prod="my-prod",
+        )
+        content = project.read_file("azuredevops/cd_deploy.yml")
+        assert "my-dev" in content
+        assert "my-test" in content
+        assert "my-prod" in content
+
+    def test_workspace_hosts_in_databricks_yml(self, bake):
+        project = bake(
+            databricks_asset_bundle="y",
+            databricks_workspace_host_dev="https://adb-dev.example.com",
+            databricks_workspace_host_test="https://adb-test.example.com",
+            databricks_workspace_host_prod="https://adb-prod.example.com",
+        )
+        content = project.read_file("databricks.yml")
+        assert "https://adb-dev.example.com" in content
+        assert "https://adb-test.example.com" in content
+        assert "https://adb-prod.example.com" in content
+
+    def test_default_workspace_hosts_are_nrx_ip_workspaces(self, bake):
+        """Default workspace URLs match the existing NRX IP workspace infrastructure."""
+        project = bake(databricks_asset_bundle="y")
+        content = project.read_file("databricks.yml")
+        assert "adb-898474248012616" in content   # DEV IP workspace
+        assert "adb-466812748542263" in content   # TEST IP workspace
+        assert "adb-3615018142746575" in content  # PROD IP workspace
+
+    def test_no_todo_placeholder_in_databricks_yml(self, bake):
+        """Workspace hosts should be fully populated — no TODO comments for host URLs."""
+        project = bake(databricks_asset_bundle="y")
+        content = project.read_file("databricks.yml")
+        # The host lines must not be empty (bare 'host:' with no value)
+        import re
+        assert not re.search(r'^\s+host:\s*$', content, re.MULTILINE), \
+            "Found empty host: line in databricks.yml — workspace URL was not baked in"
+
+    def test_secret_names_in_deploy_template(self, bake):
+        """Deploy template must use the correct NRX Key Vault secret names."""
+        project = bake(databricks_asset_bundle="y", cicd_azure_pipelines="y")
+        content = project.read_file("azuredevops/templates/dab_deploy.yml")
+        assert "databricks-sp-client-id" in content
+        assert "databricks-sp-secret" in content
+        # Old invented secret names must not be present
+        assert "DATABRICKS-CLIENT-ID" not in content
+        assert "DATABRICKS-CLIENT-SECRET" not in content
 
 
 # ── Data contracts ─────────────────────────────────────────────────────────────

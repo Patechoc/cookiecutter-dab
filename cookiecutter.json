@@ -60,12 +60,26 @@
   ],
   "databricks_catalog_prefix": "mdp",
   "databricks_catalog_suffix": "bronze",
-  "databricks_schema_prefix": "crm_dyn365",
+  "databricks_schema_prefix": "npb",
   "databricks_workspace_role": [
-    "da",
-    "ip"
+    "in",
+    "ip",
+    "da"
   ],
   "databricks_default_spark_version": "13.3.x-scala2.12",
+  "databricks_workspace_host_dev": "https://adb-898474248012616.16.azuredatabricks.net",
+  "databricks_workspace_host_test": "https://adb-466812748542263.3.azuredatabricks.net",
+  "databricks_workspace_host_prod": "https://adb-3615018142746575.15.azuredatabricks.net",
+  "ado_service_connection_prefix": "SC",
+  "ado_keyvault_name_dev": "kv-nrx-dev-dlz-di-euw",
+  "ado_keyvault_name_test": "kv-nrx-test-dlz-di-euw",
+  "ado_keyvault_name_prod": "kv-nrx-prod-dlz-di-euw",
+  "ado_agent_pool_dev": "MDP-MPDAAS-SELFHOSTED-DEV",
+  "ado_agent_pool_test": "MDP-MPDAAS-SELFHOSTED-TEST",
+  "ado_agent_pool_prod": "MDP-MPDAAS-SELFHOSTED-PROD",
+  "ado_environment_dev": "dev",
+  "ado_environment_test": "test",
+  "ado_environment_prod": "prod",
   "data_contracts": [
     "y",
     "n"
@@ -119,8 +133,8 @@
     },
     "devcontainer": {
       "__prompt__": "Add VS Code Dev Container configuration?",
-      "y": "y — add .devcontainer/",
-      "n": "n — skip"
+      "n": "n — skip",
+      "y": "y — add .devcontainer/"
     },
     "type_checker": {
       "__prompt__": "Python type checker to use",
@@ -145,11 +159,25 @@
     "databricks_catalog_suffix": "Unity Catalog suffix — appended after the environment to form the full catalog name.\n  Leave EMPTY ('') for the recommended long-term pattern: {prefix}_{env} → mdp_dev / mdp_test / mdp_prod (one catalog per environment).\n  Set to a layer name (e.g. 'bronze', 'silver', 'gold') to match the current infrastructure layout: {prefix}_{env}_{suffix} → mdp_dev_bronze / mdp_test_bronze / mdp_prod_bronze.\n  NOTE: Per-layer catalogs are a transitional pattern. The long-term goal is per-environment catalogs (empty suffix) for better data isolation.\n  Can also be set to a project-specific name for datasets with strict data-sensitivity requirements that need their own Azure Storage account.",
     "databricks_schema_prefix": "Schema prefix for this project — builds schema names: {prefix}_bronze, {prefix}_silver, {prefix}_gold. Encodes the domain/system/department, e.g. 'crm_dyn365', 'npb_volunteering', 'ipb_pims'",
     "databricks_workspace_role": {
-      "__prompt__": "Workspace role this bundle targets. Appended to DAB target names (e.g. release_ip_dev). Use 'ip' for ingestion-process workspaces, 'da' for data-applications workspaces",
-      "ip": "ip — Ingestion Process  (adb-mdp-dlz-ip-dev/test/prod-euw)",
-      "da": "da — Data Applications (adb-mdp-dlz-da-dev/test/prod-euw)"
+      "__prompt__": "Workspace role suffix in DAB target names (e.g. 'in' → release_in_dev, 'ip' → release_ip_dev). Use 'in' (generic), 'ip' (Ingestion Process), or 'da' (Data Applications)",
+      "in": "in — generic (release_in_dev / release_in_test / release_in_prod)",
+      "ip": "ip — Ingestion Process  (release_ip_dev / release_ip_test / release_ip_prod)",
+      "da": "da — Data Applications (release_da_dev / release_da_test / release_da_prod)"
     },
     "databricks_default_spark_version": "Databricks Runtime (DBR) version for all job clusters (e.g. '13.3.x-scala2.12', '15.4.x-scala2.12'). Can be changed later in databricks.yml",
+    "databricks_workspace_host_dev": "Databricks workspace URL for DEV environment (e.g. https://adb-1234567890.12.azuredatabricks.net). Safe to commit — not a secret.",
+    "databricks_workspace_host_test": "Databricks workspace URL for TEST environment.",
+    "databricks_workspace_host_prod": "Databricks workspace URL for PROD environment.",
+    "ado_service_connection_prefix": "Azure DevOps service connection name prefix. Produces 'SC-dev', 'SC-test', 'SC-prod' (pattern: {prefix}-{env}). Must have Get+List on the Key Vaults.",
+    "ado_keyvault_name_dev": "Azure Key Vault name for DEV credentials (contains databricks-sp-client-id, databricks-sp-secret).",
+    "ado_keyvault_name_test": "Azure Key Vault name for TEST credentials.",
+    "ado_keyvault_name_prod": "Azure Key Vault name for PROD credentials.",
+    "ado_agent_pool_dev": "Azure Pipelines agent pool for DEV stage.",
+    "ado_agent_pool_test": "Azure Pipelines agent pool for TEST stage.",
+    "ado_agent_pool_prod": "Azure Pipelines agent pool for PROD stage.",
+    "ado_environment_dev": "Azure DevOps Environment name for DEV (used for deployment tracking and approval gates).",
+    "ado_environment_test": "Azure DevOps Environment name for TEST.",
+    "ado_environment_prod": "Azure DevOps Environment name for PROD (configure an approval check here for the manual gate).",
     "data_contracts": {
       "__prompt__": "Add data contract YAML files? (only relevant when databricks_asset_bundle=y) Adds data-contracts/ with field definitions and quality rules",
       "n": "n — no data contracts",

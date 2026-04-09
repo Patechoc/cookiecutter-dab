@@ -142,10 +142,18 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
 {% if cookiecutter.databricks_asset_bundle == 'y' -%}
-# Databricks notebooks use dbutils / spark as implicit globals injected by the runtime.
-"notebooks/*" = ["F821"]
+# Databricks notebooks: dbutils/spark are runtime globals (F821),
+# and imports after widget setup are intentional (E402).
+"notebooks/*" = ["F821", "E402"]
 {%- endif %}
 
+{% if cookiecutter.databricks_asset_bundle == 'y' -%}
+[tool.deptry]
+# pyspark: declared as dev-only (for local testing) but imported in production modules.
+# On the Databricks cluster, pyspark is provided by the runtime — not the wheel.
+# databricks-sdk: runtime dependency used by the cluster environment, not imported directly.
+ignore = ["DEP002", "DEP004"]
+{% endif -%}
 [tool.ruff.format]
 preview = true
 

@@ -9,10 +9,10 @@
 # all resource YAML files parse correctly, and all notebook paths exist.
 # It does NOT deploy anything to a workspace.
 #
-# Prerequisites (configure once in Azure DevOps):
-#   - Variable group "databricks-dev-credentials" linked to Key Vault kv-nrx-dev,
-#     exposing: DATABRICKS-HOST, DATABRICKS-CLIENT-ID, DATABRICKS-CLIENT-SECRET
-#     (bundle validate needs these to authenticate for workspace-level checks)
+# Prerequisites:
+#   - Service connection {{cookiecutter.ado_service_connection_prefix}}-dev must have Get+List on {{cookiecutter.ado_keyvault_name_dev}}.
+#   - Key Vault {{cookiecutter.ado_keyvault_name_dev}} must expose:
+#       databricks-sp-client-id, databricks-sp-secret
 
 trigger: none  # PRs only — see pr: below
 
@@ -22,7 +22,7 @@ pr:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: '{{cookiecutter.ado_agent_pool_dev}}'
 
 variables:
   pythonVersion: '3.12'
@@ -35,12 +35,9 @@ stages:
       - job: LintAndTest
         displayName: 'ruff + pytest'
         steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: $(pythonVersion)
-            displayName: 'Set up Python $(pythonVersion)'
-
-          - script: pip install uv
+          - script: |
+              curl -LsSf https://astral.sh/uv/install.sh | sh
+              echo "##vso[task.prependpath]$HOME/.local/bin"
             displayName: 'Install uv'
 
           - script: uv sync --frozen
@@ -59,9 +56,15 @@ stages:
     jobs:
       - job: Validate
         displayName: 'databricks bundle validate'
-        variables:
-          - group: databricks-dev-credentials  # Key Vault: kv-nrx-dev
         steps:
+          - task: AzureKeyVault@2
+            inputs:
+              azureSubscription: '{{cookiecutter.ado_service_connection_prefix}}-dev'
+              KeyVaultName: '{{cookiecutter.ado_keyvault_name_dev}}'
+              SecretsFilter: 'databricks-sp-client-id,databricks-sp-secret'
+              RunAsPreJob: false
+            displayName: 'Fetch DEV credentials from {{cookiecutter.ado_keyvault_name_dev}}'
+
           - script: |
               curl -fsSL \
                 https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
@@ -72,6 +75,5 @@ stages:
               databricks bundle validate --target dev_personal
             displayName: 'Validate bundle (dev_personal target)'
             env:
-              DATABRICKS_HOST: $(DATABRICKS-HOST)
-              DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
-              DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)
+              DATABRICKS_CLIENT_ID: $(databricks-sp-client-id)
+              DATABRICKS_CLIENT_SECRET: $(databricks-sp-secret)

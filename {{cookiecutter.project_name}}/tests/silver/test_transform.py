@@ -73,7 +73,9 @@ class TestNullFiltering:
         ]
         result = transform(make_df(spark, rows))
         assert result.count() == 1
-        assert result.first()["fare_amount"] == 12.50
+        first = result.first()
+        assert first is not None
+        assert first["fare_amount"] == 12.50
 
     def test_drops_null_trip_distance(self, spark):
         rows = [
@@ -130,7 +132,9 @@ class TestTripDurationDerivation:
     def test_duration_is_correct(self, spark):
         # VALID_TRIP: 08:00 → 08:15 = 15 minutes exactly.
         result = transform(make_df(spark, [VALID_TRIP]))
-        assert result.first()["trip_duration_minutes"] == pytest.approx(15.0, abs=0.1)
+        first = result.first()
+        assert first is not None
+        assert first["trip_duration_minutes"] == pytest.approx(15.0, abs=0.1)
 
     def test_duration_rounded_to_two_decimals(self, spark):
         # 08:00 → 08:17:23 = 17 min 23 s = 17.383... min, should round to 17.38
@@ -140,7 +144,9 @@ class TestTripDurationDerivation:
             "tpep_dropoff_datetime": datetime(2023, 1, 15, 8, 17, 23),
         })
         result = transform(make_df(spark, [row]))
-        duration = result.first()["trip_duration_minutes"]
+        first = result.first()
+        assert first is not None
+        duration = first["trip_duration_minutes"]
         # Should be rounded to 2 decimal places
         assert duration == round(duration, 2)
 

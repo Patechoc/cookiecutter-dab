@@ -10,7 +10,7 @@
 # MAGIC
 # MAGIC Transformations applied (see `{{cookiecutter.project_slug}}/silver/transform.py`):
 # MAGIC - Drop rows with null fare, distance, or timestamps
-# MAGIC - Keep only trips with 1–6 passengers
+# MAGIC - Keep only trips with 1-6 passengers
 # MAGIC - Derive `trip_duration_minutes` from pickup/dropoff timestamps (dropoff - pickup)
 # MAGIC - Deduplicate on full row
 # MAGIC

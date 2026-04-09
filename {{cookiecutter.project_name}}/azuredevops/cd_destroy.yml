@@ -8,8 +8,8 @@
 #   - Cleaning up a dev workspace after a feature branch experiment
 #   - Rolling back a bad deployment (re-deploy after fixing)
 #
-# Prerequisites: same service connection and Key Vaults as cd_deploy.yml.
-# The "databricks-prod" ADO Environment has an approval gate — destroying PROD
+# Prerequisites: same service connections and Key Vaults as cd_deploy.yml.
+# The '{{cookiecutter.ado_environment_prod}}' ADO Environment has an approval gate — destroying PROD
 # requires the same manual approval as deploying to it.
 
 trigger: none
@@ -24,23 +24,68 @@ parameters:
       - test
       - prod
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 stages:
-  - stage: Destroy
-    displayName: "Destroy → {% raw %}${{ parameters.environment }}{% endraw %}"
+  # ── DEV ────────────────────────────────────────────────────────────────────
+  - stage: DestroyDEV
+    displayName: 'Destroy → DEV'
+    condition: "{% raw %}${{ eq(parameters.environment, 'dev') }}{% endraw %}"
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_dev}}'
     jobs:
-      - deployment: Destroy
-        displayName: "Destroy bundle in {% raw %}${{ parameters.environment }}{% endraw %}"
-        environment: "databricks-{% raw %}${{ parameters.environment }}{% endraw %}"
+      - deployment: DestroyDEV
+        displayName: 'Destroy bundle in DEV'
+        environment: '{{cookiecutter.ado_environment_dev}}'
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
-
                 - template: templates/dab_destroy.yml
                   parameters:
-                    bundle_target: "release_{{cookiecutter.databricks_workspace_role}}_{% raw %}${{ parameters.environment }}{% endraw %}"
-                    key_vault_name: "kv-nrx-{% raw %}${{ parameters.environment }}{% endraw %}"
+                    environment: 'dev'
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_dev'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_dev}}'
+
+  # ── TEST ───────────────────────────────────────────────────────────────────
+  - stage: DestroyTest
+    displayName: 'Destroy → TEST'
+    condition: "{% raw %}${{ eq(parameters.environment, 'test') }}{% endraw %}"
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_test}}'
+    jobs:
+      - deployment: DestroyTest
+        displayName: 'Destroy bundle in TEST'
+        environment: '{{cookiecutter.ado_environment_test}}'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - template: templates/dab_destroy.yml
+                  parameters:
+                    environment: 'test'
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_test'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_test}}'
+
+  # ── PROD ───────────────────────────────────────────────────────────────────
+  # The '{{cookiecutter.ado_environment_prod}}' ADO Environment has an approval check — destroying
+  # PROD requires a human to approve before the stage runs.
+  - stage: DestroyProd
+    displayName: 'Destroy → PROD'
+    condition: "{% raw %}${{ eq(parameters.environment, 'prod') }}{% endraw %}"
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_prod}}'
+    jobs:
+      - deployment: DestroyProd
+        displayName: 'Destroy bundle in PROD'
+        environment: '{{cookiecutter.ado_environment_prod}}'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                - template: templates/dab_destroy.yml
+                  parameters:
+                    environment: 'prod'
+                    bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_prod'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_prod}}'

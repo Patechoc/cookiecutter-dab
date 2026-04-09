@@ -4,16 +4,17 @@
 #   DEV  (automatic) → TEST (automatic) → PROD (manual approval gate)
 #
 # Each stage:
-#   1. Fetches workspace credentials from the environment's Azure Key Vault.
+#   1. Fetches service principal credentials from the environment's Azure Key Vault
+#      using the service connection {{cookiecutter.ado_service_connection_prefix}}-{env}.
 #   2. Builds the Python wheel with `uv build`.
 #   3. Deploys the bundle with `databricks bundle deploy`.
+#      The workspace URL is read from databricks.yml — no DATABRICKS_HOST needed.
 #
-# Prerequisites (configure once in Azure DevOps):
-#   - Service connection "nrx-azure-service-connection" with access to all three Key Vaults.
-#   - ADO Environments: "databricks-dev", "databricks-test", "databricks-prod".
-#     Add an approval check on "databricks-prod" for the manual gate.
-#   - Key Vaults per environment expose:
-#       DATABRICKS-HOST, DATABRICKS-CLIENT-ID, DATABRICKS-CLIENT-SECRET
+# Prerequisites (configured once in Azure DevOps — do not need to create these):
+#   - Service connections: {{cookiecutter.ado_service_connection_prefix}}-dev / {{cookiecutter.ado_service_connection_prefix}}-test / {{cookiecutter.ado_service_connection_prefix}}-prod
+#   - ADO Environments: {{cookiecutter.ado_environment_dev}} / {{cookiecutter.ado_environment_test}} / {{cookiecutter.ado_environment_prod}}
+#     (add an approval check on '{{cookiecutter.ado_environment_prod}}' for the manual gate)
+#   - Key Vault secrets in each vault: databricks-sp-client-id, databricks-sp-secret
 
 trigger:
   branches:
@@ -22,17 +23,16 @@ trigger:
 
 pr: none  # CD only — not triggered on PRs
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 stages:
   # ── DEV ────────────────────────────────────────────────────────────────────
   - stage: DeployDEV
     displayName: 'Deploy → DEV'
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_dev}}'
     jobs:
       - deployment: DeployDEV
         displayName: 'Deploy bundle to DEV workspace'
-        environment: 'databricks-dev'
+        environment: '{{cookiecutter.ado_environment_dev}}'
         strategy:
           runOnce:
             deploy:
@@ -41,18 +41,21 @@ stages:
 
                 - template: templates/dab_deploy.yml
                   parameters:
+                    environment: 'dev'
                     bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_dev'
-                    key_vault_name: 'kv-nrx-dev'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_dev}}'
 
   # ── TEST ───────────────────────────────────────────────────────────────────
   - stage: DeployTest
     displayName: 'Deploy → TEST'
     dependsOn: DeployDEV
     condition: succeeded('DeployDEV')
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_test}}'
     jobs:
       - deployment: DeployTest
         displayName: 'Deploy bundle to TEST workspace'
-        environment: 'databricks-test'
+        environment: '{{cookiecutter.ado_environment_test}}'
         strategy:
           runOnce:
             deploy:
@@ -61,20 +64,23 @@ stages:
 
                 - template: templates/dab_deploy.yml
                   parameters:
+                    environment: 'test'
                     bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_test'
-                    key_vault_name: 'kv-nrx-test'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_test}}'
 
   # ── PROD ───────────────────────────────────────────────────────────────────
-  # Manual approval gate is configured on the "databricks-prod" ADO Environment.
+  # Manual approval gate is configured on the '{{cookiecutter.ado_environment_prod}}' ADO Environment.
   # The pipeline pauses here until an approver accepts or rejects.
   - stage: DeployProd
     displayName: 'Deploy → PROD'
     dependsOn: DeployTest
     condition: succeeded('DeployTest')
+    pool:
+      name: '{{cookiecutter.ado_agent_pool_prod}}'
     jobs:
       - deployment: DeployProd
         displayName: 'Deploy bundle to PROD workspace'
-        environment: 'databricks-prod'
+        environment: '{{cookiecutter.ado_environment_prod}}'
         strategy:
           runOnce:
             deploy:
@@ -83,5 +89,6 @@ stages:
 
                 - template: templates/dab_deploy.yml
                   parameters:
+                    environment: 'prod'
                     bundle_target: 'release_{{cookiecutter.databricks_workspace_role}}_prod'
-                    key_vault_name: 'kv-nrx-prod'
+                    key_vault_name: '{{cookiecutter.ado_keyvault_name_prod}}'

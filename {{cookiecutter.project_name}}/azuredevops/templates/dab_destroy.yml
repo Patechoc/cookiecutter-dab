@@ -4,8 +4,12 @@
 # artifacts. Does NOT drop Unity Catalog tables or delete any data.
 
 parameters:
+  - name: environment
+    displayName: 'Environment name (dev / test / prod) — used to select the service connection'
+    type: string
+
   - name: bundle_target
-    displayName: 'DAB target name (e.g. release_ip_dev)'
+    displayName: 'DAB target name (e.g. release_in_dev)'
     type: string
 
   - name: key_vault_name
@@ -13,7 +17,7 @@ parameters:
     type: string
 
 steps:
-  # ── 1. Install tools ───────────────────────────────────────────────────────
+  # ── 1. Install Databricks CLI ──────────────────────────────────────────────
   - script: |
       curl -fsSL \
         https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
@@ -23,10 +27,9 @@ steps:
   # ── 2. Fetch credentials from Key Vault ───────────────────────────────────
   - task: AzureKeyVault@2
     inputs:
-      azureSubscription: 'nrx-azure-service-connection'
+      azureSubscription: '{{cookiecutter.ado_service_connection_prefix}}-{% raw %}${{ parameters.environment }}{% endraw %}'
       KeyVaultName: {% raw %}${{ parameters.key_vault_name }}{% endraw %}
-
-      SecretsFilter: 'DATABRICKS-HOST,DATABRICKS-CLIENT-ID,DATABRICKS-CLIENT-SECRET'
+      SecretsFilter: 'databricks-sp-client-id,databricks-sp-secret'
       RunAsPreJob: false
     displayName: "Fetch Databricks credentials from {% raw %}${{ parameters.key_vault_name }}{% endraw %}"
 
@@ -38,6 +41,5 @@ steps:
         --auto-approve
     displayName: "Destroy bundle resources in {% raw %}${{ parameters.bundle_target }}{% endraw %}"
     env:
-      DATABRICKS_HOST: $(DATABRICKS-HOST)
-      DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
-      DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)
+      DATABRICKS_CLIENT_ID: $(databricks-sp-client-id)
+      DATABRICKS_CLIENT_SECRET: $(databricks-sp-secret)

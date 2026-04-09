@@ -9,7 +9,7 @@ Silver contract
 ---------------
 - Rows with null fare, distance, or timestamps are dropped.
 - Trip duration is derived (``trip_duration_minutes``).
-- Passenger count is validated (must be 1–6).
+- Passenger count is validated (must be 1-6).
 - Result is written in **overwrite** mode — silver is a full refresh of clean data.
 
 When adapting to a real project, replace the ``transform()`` logic with your
@@ -44,8 +44,8 @@ def transform(df: DataFrame) -> DataFrame:
 
     Rules applied:
     - Drop rows where fare, trip distance, pickup or dropoff time is null.
-    - Keep only trips with 1–6 passengers (invalid entries removed).
-    - Add ``trip_duration_minutes`` column (dropoff − pickup time).
+    - Keep only trips with 1-6 passengers (invalid entries removed).
+    - Add ``trip_duration_minutes`` column (dropoff - pickup time).
     - Deduplicate on the full row (idempotent re-runs).
 
     Args:

@@ -3,10 +3,17 @@
 # Called by cd_deploy.yml for each stage (DEV / TEST / PROD).
 # Credentials are fetched from the environment's Azure Key Vault at runtime —
 # no secrets are stored in this file or in the repository.
+#
+# The workspace URL is read from databricks.yml (target.workspace.host),
+# so only the service principal credentials are needed from Key Vault.
 
 parameters:
+  - name: environment
+    displayName: 'Environment name (dev / test / prod) — used to select the service connection'
+    type: string
+
   - name: bundle_target
-    displayName: 'DAB target name (e.g. release_ip_dev)'
+    displayName: 'DAB target name (e.g. release_in_dev)'
     type: string
 
   - name: key_vault_name
@@ -14,15 +21,7 @@ parameters:
     type: string
 
 steps:
-  # ── 1. Install tools ───────────────────────────────────────────────────────
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.12'
-    displayName: 'Set up Python 3.12'
-
-  - script: pip install uv
-    displayName: 'Install uv'
-
+  # ── 1. Install Databricks CLI ──────────────────────────────────────────────
   - script: |
       curl -fsSL \
         https://raw.githubusercontent.com/databricks/setup-databricks-cli/v0/install.sh \
@@ -30,19 +29,25 @@ steps:
     displayName: 'Install Databricks CLI'
 
   # ── 2. Fetch credentials from Key Vault ───────────────────────────────────
-  # The service connection must have Get+List permissions on the Key Vault.
-  # Secret names use dashes (Key Vault convention); they are exposed as
-  # pipeline variables with dashes replaced by underscores by AzureKeyVault@2.
+  # Service connection name follows the pattern: {{cookiecutter.ado_service_connection_prefix}}-{env}
+  # Key Vault secrets required:
+  #   databricks-sp-client-id  — service principal application (client) ID
+  #   databricks-sp-secret     — service principal client secret
+  # The workspace URL comes from databricks.yml (target.workspace.host), not from Key Vault.
   - task: AzureKeyVault@2
     inputs:
-      azureSubscription: 'nrx-azure-service-connection'
+      azureSubscription: '{{cookiecutter.ado_service_connection_prefix}}-{% raw %}${{ parameters.environment }}{% endraw %}'
       KeyVaultName: {% raw %}${{ parameters.key_vault_name }}{% endraw %}
-
-      SecretsFilter: 'DATABRICKS-HOST,DATABRICKS-CLIENT-ID,DATABRICKS-CLIENT-SECRET'
+      SecretsFilter: 'databricks-sp-client-id,databricks-sp-secret'
       RunAsPreJob: false
     displayName: "Fetch Databricks credentials from {% raw %}${{ parameters.key_vault_name }}{% endraw %}"
 
-  # ── 3. Install dependencies ────────────────────────────────────────────────
+  # ── 3. Install uv and dependencies ────────────────────────────────────────
+  - script: |
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      echo "##vso[task.prependpath]$HOME/.local/bin"
+    displayName: 'Install uv'
+
   - script: uv sync --frozen
     displayName: 'Install Python dependencies'
 
@@ -52,12 +57,12 @@ steps:
 
   # ── 5. Deploy bundle ───────────────────────────────────────────────────────
   # --force-lock: breaks stale deployment locks from previous failed runs.
+  # DATABRICKS_HOST is not needed — read from databricks.yml target.workspace.host.
   - script: |
       databricks bundle deploy \
         --target {% raw %}${{ parameters.bundle_target }}{% endraw %} \
         --force-lock
     displayName: "Deploy bundle to {% raw %}${{ parameters.bundle_target }}{% endraw %}"
     env:
-      DATABRICKS_HOST: $(DATABRICKS-HOST)
-      DATABRICKS_CLIENT_ID: $(DATABRICKS-CLIENT-ID)
-      DATABRICKS_CLIENT_SECRET: $(DATABRICKS-CLIENT-SECRET)
+      DATABRICKS_CLIENT_ID: $(databricks-sp-client-id)
+      DATABRICKS_CLIENT_SECRET: $(databricks-sp-secret)

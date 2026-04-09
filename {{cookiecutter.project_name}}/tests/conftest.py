@@ -9,15 +9,17 @@ Configuration choices:
   ui.enabled=false                — suppress the Spark web UI in test output
 """
 {% if cookiecutter.databricks_asset_bundle == 'y' -%}
+from collections.abc import Generator
+
 import pytest
 from pyspark.sql import SparkSession
 
 
 @pytest.fixture(scope="session")
-def spark() -> SparkSession:
+def spark() -> Generator[SparkSession, None, None]:
     """Local SparkSession shared across all tests in the session.
 
-    Session scope keeps startup cost (≈5–10 s) to a single hit per test run.
+    Session scope keeps startup cost (~5-10 s) to a single hit per test run.
     The session is stopped automatically after all tests complete.
     """
     session = (
